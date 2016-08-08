@@ -2,54 +2,56 @@
 namespace Search\Library;
 
 /**
- * @author Jea <jinhongwei@gongchang.com>
- * elasticsearch搜索基类
+ * @author Jea
+ * elasticsearch搜索基类, 不包含 mapping  setting 只有 search ,getOneDoc, delete
  * 按顺序设置host, type, data, 最后进行操作
  */
 class Elasticsearch
 {
     //显示调试信息
-    protected $debug = false;
+    private $debug = false;
     //设置连接地址
-    protected $hosts = null;
+    private $hosts = null;
     //最终拼接后的地址
-    protected $uri = null;
+    private $uri = null;
     //curl超时时间
-    protected $timeOut = 30;
+    private $timeOut = 30;
     //保存错误信息
-    protected $errorInfo = null;
+    private $errorInfo = null;
     //需要传递的参数, 在除get, delete外的方法有效
-    protected $data = array();
+    private $data = array();
     //保存除index, type, id之外的数据
-    protected $param = null;
+    private $param = null;
     //错误代码
-    protected $errorCode = 0;
+    private $errorCode = 0;
     //要查找的索引
-    protected $index = null;
+    private $index = null;
     //要查找的类型(不知道怎么翻译好)
-    protected $type = null;
+    private $type = null;
     //要输出的结果
-    protected $outData = null;
+    private $outData = null;
     //设置查询的id
-    protected $id = 0;
+    private $id = 0;
     //排序字段
-    protected $sortField = '';
+    private $sortField = '';
     //排序方式
-    protected $order = 'asc';
+    private $order = 'asc';
     //搜索结果
-    protected $result = '';
+    private $result = '';
     //curl句柄
-    protected $ch = null;
+    private $ch = null;
     //请求方式
-    protected $callType = null;
+    private $callType = null;
     //保存最终的返回字段
-    protected $columns = array();
+    private $columns = array();
     //地理位置相关参数, like array($attrLat, $attrLng, $lat, $lon, $distance, $minDistance = 0)
-    protected $geoParam = array();
+    private $geoParam = array();
     //动态计算相关, 需要封进 script_score
-    protected $dynamicParam = array();
+    private $dynamicParam = array();
     //聚合字段 ,aggregations
-    protected $aggrParam = array();
+    private $aggrParam = array();
+    //保存查询条件, 组合后的
+    private $data = array();
 
     /**
      * 设定连接地址
@@ -207,6 +209,36 @@ class Elasticsearch
                 'errorMsg' => $this->errorInfo,
             );
         }
+    }
+
+    /**
+     * 清除设定的相关参数
+     * @return [type] [description]
+     */
+    public function clearParam()
+    {
+        $this->debug        = false;
+        $this->hosts        = null;
+        $this->uri          = null;
+        $this->timeOut      = 30;
+        $this->errorInfo    = null;
+        $this->data         = array();
+        $this->param        = null;
+        $this->errorCode    = 0;
+        $this->index        = null;
+        $this->type         = null;
+        $this->outData      = null;
+        $this->id           = 0;
+        $this->sortField    = '';
+        $this->order        = 'asc';
+        $this->result       = '';
+        $this->ch           = null;
+        $this->callType     = null;
+        $this->column       = array();
+        $this->geoParam     = array();
+        $this->dynamicParam = array();
+        $this->aggrParam    = array();
+        $this->data         = array();
     }
 
     /**

@@ -296,6 +296,11 @@ class Elasticsearch {
 		{
 			$this->data['_source'] = $this->columns;
 		}
+		//如果需要动态计算 则去取得动态计算结果
+		if ( ! empty($this->dynamicParam))
+		{
+			$this->scriptScoreSrot();
+		}
 	}
 
 	/**
@@ -419,8 +424,7 @@ class Elasticsearch {
 
 			return;
 		}
-		$rules  = array();
-		$filter = array();
+		$rules = array();
 		foreach ($this->param['rules'] as $key => $value)
 		{
 			if ( ! isset($value['field']) || ! isset($value['type']) || ! isset($value['value']) || ! isset($value['weight']))
@@ -602,7 +606,7 @@ class Elasticsearch {
 					'inline' => $this->dynamicParam['script'],
 					'params' => $this->dynamicParam['params'],
 				),
-				'sort'   => 'asc',
+				'order'   => $this->dynamicParam['order'],
 			),
 		);
 		$this->data['sort'] = $sortArr;

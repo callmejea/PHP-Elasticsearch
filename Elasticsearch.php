@@ -1,5 +1,5 @@
 <?php
-namespace Search\Library;
+namespace PhpElastic;
 
 /**
  * @author Jea
@@ -8,6 +8,21 @@ namespace Search\Library;
  */
 class Elasticsearch {
 
+	//保存最终的返回字段
+	protected $columns = array();
+	//地理位置相关参数, like array($attrLat, $attrLng, $lat, $lon, $distance, $minDistance = 0)
+	protected $geoParam = array();
+	//动态计算相关, 需要封进 script_score
+	protected $dynamicParam = array();
+	//聚合字段 ,aggregations
+	protected $aggrParam = array();
+	//保存除index, type, id之外的数据
+	protected $param = NULL;
+
+	//要查找的索引
+	private $index = NULL;
+	//要查找的类型(不知道怎么翻译好)
+	private $type = NULL;
 	//显示调试信息
 	private $debug = FALSE;
 	//设置连接地址
@@ -20,36 +35,22 @@ class Elasticsearch {
 	private $errorInfo = NULL;
 	//需要传递的参数, 在除get, delete外的方法有效
 	private $data = array();
-	//保存除index, type, id之外的数据
-	private $param = NULL;
 	//错误代码
 	private $errorCode = 0;
-	//要查找的索引
-	private $index = NULL;
-	//要查找的类型(不知道怎么翻译好)
-	private $type = NULL;
 	//要输出的结果
 	private $outData = NULL;
 	//设置查询的id
 	private $id = 0;
 	//排序字段
-	private $sortField = '';
+	protected $sortField = '';
 	//排序方式
-	private $order = 'asc';
+	protected $order = 'asc';
 	//搜索结果
 	private $result = '';
 	//curl句柄
 	private $ch = NULL;
 	//请求方式
 	private $callType = NULL;
-	//保存最终的返回字段
-	private $columns = array();
-	//地理位置相关参数, like array($attrLat, $attrLng, $lat, $lon, $distance, $minDistance = 0)
-	private $geoParam = array();
-	//动态计算相关, 需要封进 script_score
-	private $dynamicParam = array();
-	//聚合字段 ,aggregations
-	private $aggrParam = array();
 
 	/**
 	 * 设定连接地址
@@ -201,7 +202,6 @@ class Elasticsearch {
 			curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, TRUE);
 			call_user_func(array($this, $this->callType));
 			$this->result = curl_exec($this->ch);
-			//$httpCode     = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
 			curl_close($this->ch);
 			if ($this->debug)
 			{
@@ -304,7 +304,7 @@ class Elasticsearch {
 	}
 
 	/**
-	 * 聚合参数, 将参数聚合为elasticsearch需要的json
+	 * 聚合参数, 将参数聚合为elastic search需要的json
 	 * @return [type] [description]
 	 */
 	private function fmartMultiTerm()
@@ -329,7 +329,7 @@ class Elasticsearch {
 		}
 		//最小匹配should的数量
 		$this->data['query']['bool']['minimum_should_match'] = $this->param['minNum'];
-		//格式化boolquery的filter
+		//格式化bool query的filter
 		$this->data['query'] = $this->buildFilter();
 
 		return $this;
@@ -418,20 +418,20 @@ class Elasticsearch {
 	 */
 	private function selfSortRule()
 	{
+		$rules = array();
 		if ( ! isset($this->param['rules']))
 		{
 			$this->errorInfo = 'use function selfSortSearch, you must set param rules';
 
-			return;
+			return $rules;
 		}
-		$rules = array();
 		foreach ($this->param['rules'] as $key => $value)
 		{
 			if ( ! isset($value['field']) || ! isset($value['type']) || ! isset($value['value']) || ! isset($value['weight']))
 			{
 				$this->errorInfo = 'rules param error! you must set field, type, value, weight! now some is missing';
 
-				return;
+				return $rules;
 			}
 			$rules[$key]['weight'] = $value['weight'];
 			switch ($value['type'])
@@ -450,7 +450,7 @@ class Elasticsearch {
 				default:
 					$this->errorInfo = 'error Filter! please use : > < =';
 
-					return;
+					return $rules;
 					break;
 			}
 		}
@@ -495,7 +495,7 @@ class Elasticsearch {
 					{
 						$this->errorInfo = 'use "in", The value you set must be an array';
 
-						return;
+						return array();
 					}
 					foreach ($value['value'] as $k => $v)
 					{
@@ -511,7 +511,7 @@ class Elasticsearch {
 					{
 						$this->errorInfo = 'use "not in", The value you set must be an array';
 
-						return;
+						return array();
 					}
 					foreach ($value['value'] as $k => $v)
 					{
@@ -525,14 +525,21 @@ class Elasticsearch {
 				default:
 					$this->errorInfo = 'error Filter! please use : between > < = != in';
 
-					return;
+					return array();
 					break;
 			}
 		}
 
 		if ( ! empty($this->geoParam))
 		{
-			$filter['bool']['must'][] = $this->buildGeo();
+			if (isset($this->geoParam['needBox']) && $this->geoParam['needBox'] === TRUE)
+			{
+				$filter['bool']['must'][] = $this->buildGeoBox();
+			}
+			else
+			{
+				$filter['bool']['must'][] = $this->buildGeo();
+			}
 		}
 
 		return $filter;
@@ -548,7 +555,7 @@ class Elasticsearch {
 		{
 			$this->errorInfo = 'use geo Search you must set distance, unit,lon,lat';
 
-			return;
+			return array();
 		}
 		$geoCondition = array(
 			'geo_distance' => array(
@@ -562,6 +569,38 @@ class Elasticsearch {
 		$this->buildGeoSort();
 
 		return $geoCondition;
+	}
+
+	/**
+	 * 组合查询的经纬度选框, 某区域内
+	 * @return array
+	 */
+	private function buildGeoBox()
+	{
+		if ( ! isset($geoParam['attr']) || ! isset($geoParam['leftTopLat']) || ! isset($geoParam['leftTopLon']) || ! isset($geoParam['rightBottomLat'])
+			|| ! isset($geoParam['rightBottomLon'])
+		)
+		{
+			$this->errorInfo = 'use geoBox Search you must set $attr, $leftTopLat, $leftTopLon, $rightBottomLat, $rightBottomLon';
+
+			return array();
+		}
+		$boxArr = array(
+			'geo_bounding_box' => array(
+				$this->geoParam['attr'] => array(
+					'top_left'     => array(
+						'lat' => $this->geoParam['leftTopLat'],
+						'lon' => $this->geoParam['leftTopLon'],
+					),
+					'bottom_right' => array(
+						'lat' => $this->geoParam['rightBottomLat'],
+						'lon' => $this->geoParam['rightBottomLon'],
+					),
+				),
+			),
+		);
+
+		return $boxArr;
 	}
 
 	/**
@@ -606,30 +645,12 @@ class Elasticsearch {
 					'inline' => $this->dynamicParam['script'],
 					'params' => $this->dynamicParam['params'],
 				),
-				'order'   => $this->dynamicParam['order'],
+				'order'  => $this->dynamicParam['order'],
 			),
 		);
 		$this->data['sort'] = $sortArr;
 
 		return;
-	}
-
-	private function geoBoxSearch()
-	{
-		$boxArr = array(
-			'geo_bounding_box' => array(
-				'geoPoint' => array(
-					'bottom_right' => array(
-						'lat' => 31.11,
-						'lon' => 110.88,
-					),
-					'top_left'     => array(
-						'lat' => 35.22,
-						'lon' => 116.33,
-					),
-				),
-			),
-		);
 	}
 
 	/**

@@ -1,11 +1,11 @@
 # php-elasticsearch
 php 使用 elasticsearch 的类库, 官方的太过庞大, 造了个轮子
 
-1: 添加了debug参数 传入 $es->debug = true;
+####1: 添加了debug参数 传入 $es->debug = true;
 
  将返回组装后的json和查询返回的数据
 
-2: 允许控制多字段查询的权重, 方式如下: 
+####2: 允许控制多字段查询的权重, 方式如下: 
 ```php
 $data = array(
         'index'      => 'Your index',
@@ -35,7 +35,7 @@ array(
   'errorMsg' => '错误信息'
 )
 ```
-正文开始:
+##正文开始:
 
 以下这部分是全部的使用开头都要这么写
 
@@ -46,7 +46,7 @@ $host = '192.168.12.80'; #The host of you used where installed es
 $port = 9200;  #the port of your es ! must be integer
 $es = $es->setHosts(array('host' => $host, 'port' => $port));
 ```
-1: 增加或更新一条记录
+####1: 增加或更新一条记录
 
  ```php
  $data = array(
@@ -57,7 +57,7 @@ $es = $es->setHosts(array('host' => $host, 'port' => $port));
 );
 $res = $es->setParam($data)->save()->call();
 ```
-2: 没有自定义排序的搜索
+####2: 没有自定义排序的搜索
 ```php
 $data = array(
     'index'      => 'Your index',
@@ -84,7 +84,7 @@ $data = array(
 );
 $res = $es->setParam($data)->search()->call();
 ```
-3: 没有自定义排序并且没有filter规则, 仅仅是匹配出来结果的搜索
+####3: 没有自定义排序并且没有filter规则, 仅仅是匹配出来结果的搜索
 ```php
 $data = array(
     'index'      => 'Your index',
@@ -102,7 +102,7 @@ $data = array(
 );
 $res = $es->setParam($data)->search()->call();
 ```
-4: 有自定义排序并且有filter的搜索
+####4: 有自定义排序并且有filter的搜索
 ```php
 $data = array(
     'index'      => 'Your index',
@@ -134,7 +134,7 @@ $data = array(
 
 $res = $es->setParam($data)->selfSortSearch()->call();
 ```
-5 : 删除一条索引
+####5 : 删除一条索引
 ```php
 $data = array(
     'index'      => 'Your index',
@@ -144,7 +144,7 @@ $data = array(
 
 $res = $es->setParam($data)->delDoc()->call();
 ```
-6: 带有信息数量聚合的搜索, 在任何你需要的地方写, 没有具体的要求, 需要显式的传入 needGroupBy
+####6: 带有信息数量聚合的搜索, 在任何你需要的地方写, 没有具体的要求, 需要显式的传入 needGroupBy
 ```php
 #部分注释和前面一样, 就不再写了
 $data = array(
@@ -187,7 +187,7 @@ Array
 )
 */
 ```
-7: 获取一条数据
+####7: 获取一条数据
 ```php
  $data = array(
         'id'          => 2,
@@ -206,7 +206,7 @@ $data = array(
     );
 ```
  
-8: 增加了 多关键字, 多字段匹配, 无排序
+####8: 增加了 多关键字, 多字段匹配, 无排序
 ```php
 $data = array(
         'index'      => 'products-work',

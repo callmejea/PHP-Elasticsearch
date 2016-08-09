@@ -64,7 +64,7 @@ $data = array(
     'type'       => 'YourType',
     'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改
     'keyword'    => 'apple',# 需要匹配的关键字
-    'columns'    => array('encomname', 'promain'), #需要匹配哪些字段, 如果不需要高亮那么就可以写聚合字段, 具体是哪个字段或有没有聚合字段, 请找 金宏威
+    'columns'    => array('encomname', 'promain'), #需要匹配哪些字段, 如果不需要高亮那么就可以写聚合字段, 具体是哪个字段或有没有聚合字段
     'filters'    => array(
         array('field' => '字段', 'type' => '比对类型, 提供的类型: = > < != between, in', 'value' => '要比对的value'),
     ),
@@ -109,7 +109,7 @@ $data = array(
     'type'       => 'YourType',
     'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改
     'keyword'    => 'apple',# 需要匹配的关键字
-    'columns'    => array('encomname', 'promain'), #需要匹配哪些字段, 如果不需要高亮那么就可以写聚合字段, 具体是哪个字段或有没有聚合字段, 请找 金宏威
+    'columns'    => array('encomname', 'promain'), #需要匹配哪些字段, 如果不需要高亮那么就可以写聚合字段, 具体是哪个字段或有没有聚合字段
     'filters'    => array(
         array('field' => '字段', 'type' => '比对类型, 提供的类型: = > < != between, in', 'value' => '要比对的value'),
     ),

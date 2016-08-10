@@ -156,7 +156,9 @@ $data = array(
   #显式指定需要进行group by
     'needGroupBy' => true,
   # 需要进行groupby的字段, 值可以是多个
-    'aggColumns'  => array('cate2'),
+    'aggColumns'  => array(
+        array('aggColumns' => 'group by field', 'groupOrderField' => 'order filed liek (_term, _count)', 'direction' => 'asc||desc'),
+    )
 #-------------------------------------
 );
 $res = $es->setParam($data)->search()->call();

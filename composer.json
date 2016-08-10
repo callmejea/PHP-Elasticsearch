@@ -1,0 +1,24 @@
+{
+    "name": "callmejea/php-elasticsearch",
+    "description": "a client of elasticsearch",
+    "keywords": [
+        "elasticsearch",
+        "php-elasticsearch"
+    ],
+    "homepage": "https://github.com/callmejea/php-elasticsearch",
+    "license": "Apache",
+    "authors": [
+        {
+            "name": "Jea",
+            "homepage": "https://github.com/callmejea/php-elasticsearch"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "PhpElastic": "/"
+        }
+    },
+    "require": {
+        "php":">=5.3"
+    }
+}

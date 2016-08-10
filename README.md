@@ -1,5 +1,6 @@
 # php-elasticsearch
 php 使用 elasticsearch 的类库, 官方的太过庞大, 造了个轮子
+理论上来讲, 在类库中的方法是可以随意组合的
 
 ####1: 添加了debug参数 传入 $es->debug = true;
 
@@ -8,11 +9,11 @@ php 使用 elasticsearch 的类库, 官方的太过庞大, 造了个轮子
 ####2: 允许控制多字段查询的权重, 方式如下: 
 ```php
 $data = array(
-        'index'      => 'Your index',
-        'type'       => 'YourType',
-        'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改  如果是多关键字查询 有如下参数: cross_fields(出现在越多的字段得分越高) best_fields(匹配度越高得分越高) most_fields(出现频率越高得分越高)
-        'keyword'    => 'apple',# 需要匹配的关键字
-        'columns'    => array('encomname^10', 'promain^5'), #在这里代表的是:encomname会在基础查询权重上得分 * 10, promain会*5, 允许传入 float 类型, 如果降权, 可以传入 0.001 , 类似的
+    'index'      => 'Your index',
+    'type'       => 'YourType',
+    'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改  如果是多关键字查询 有如下参数: cross_fields(出现在越多的字段得分越高) best_fields(匹配度越高得分越高) most_fields(出现频率越高得分越高)
+    'keyword'    => 'apple',# 需要匹配的关键字
+    'columns'    => array('encomname^10', 'promain^5'), #在这里代表的是:encomname会在基础查询权重上得分 * 10, promain会*5, 允许传入 float 类型, 如果降权, 可以传入 0.001 , 类似的
 )
 ```
 关于返回值: 如果有查询到结果, 那么会返回
@@ -201,25 +202,25 @@ $data = array(
     );
 ```
  
-####8: 增加了 多关键字, 多字段匹配, 无排序
+####8: 增加了 多关键字, 多字段匹配
 ```php
 $data = array(
-        'index'      => 'Your index',
-        'type'       => 'Your type',
-        'searchType' => 'phrase', //phrase
-        'keyword'    => array("key1", "key2"),
-        'columns'    => array('field1', 'field2'),
-        //过滤条件
-        'filters'    => array(
-            0 => array('field' => 'value', 'type' => '=', 'value' => 1),
-            1 => array('field' => 'value1', 'type' => '=', 'value' => 1),
-        ),
-        //在多个或搜索中, 需要匹配的个数, 其中, 一共产生的或关系的匹配条件数量是: keyword个数 x columns个数 只有匹配到该值数量的条件时, 才会返回一条数据
-        'minNum'     => 1,
-        'from'       => 0,
-        'size'       => 100,
-    );
-    $es        = new Elasticsearch;
-    $es->debug = true;
-    $res       = $es->setHosts(array('host' => 'your ip', 'port' => your port))->setParam($data)->multiKeySearch()->call();
+    'index'      => 'Your index',
+    'type'       => 'Your type',
+    'searchType' => 'phrase', //phrase
+    'keyword'    => array("key1", "key2"),
+    'columns'    => array('field1', 'field2'),
+    //过滤条件
+    'filters'    => array(
+        0 => array('field' => 'value', 'type' => '=', 'value' => 1),
+        1 => array('field' => 'value1', 'type' => '=', 'value' => 1),
+    ),
+    //在多个或搜索中, 需要匹配的个数, 其中, 一共产生的或关系的匹配条件数量是: keyword个数 x columns个数 只有匹配到该值数量的条件时, 才会返回一条数据
+    'minNum'     => 1,
+    'from'       => 0,
+    'size'       => 100,
+);
+$es        = new Elasticsearch;
+$es->debug = true;
+$res       = $es->setHosts(array('host' => 'your ip', 'port' => your port))->setParam($data)->multiKeySearch()->call();
 ```

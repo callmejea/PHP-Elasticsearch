@@ -14,10 +14,12 @@ class Elasticsearch {
 	protected $geoParam = array();
 	//动态计算相关, 需要封进 script_score
 	protected $dynamicParam = array();
-	//聚合字段 ,aggregations
-	protected $aggrParam = array();
 	//保存除index, type, id之外的数据
 	protected $param = NULL;
+	//排序字段
+	protected $sortField = '';
+	//排序方式
+	protected $order = 'asc';
 
 	//要查找的索引
 	private $index = NULL;
@@ -41,10 +43,6 @@ class Elasticsearch {
 	private $outData = NULL;
 	//设置查询的id
 	private $id = 0;
-	//排序字段
-	protected $sortField = '';
-	//排序方式
-	protected $order = 'asc';
 	//搜索结果
 	private $result = '';
 	//curl句柄
@@ -258,7 +256,6 @@ class Elasticsearch {
 		$this->column       = array();
 		$this->geoParam     = array();
 		$this->dynamicParam = array();
-		$this->aggrParam    = array();
 		$this->data         = array();
 	}
 
@@ -277,7 +274,7 @@ class Elasticsearch {
 			$this->data['highlight']['fields']    = $this->param['highFields'];
 		}
 		//是否要求了聚合信息
-		if (isset($this->param['needGroupBy']))
+		if (isset($this->param['needGroupBy']) && $this->param['needGroupBy'] === TRUE)
 		{
 			self::aggr();
 		}
@@ -350,9 +347,13 @@ class Elasticsearch {
 		$arr = array();
 		foreach ($this->param['aggColumns'] as $key => $value)
 		{
-			$arr[$value]['terms']['field'] = $value;
+			$arr[$value['aggColumns']]['terms']= array(
+				'field' => $value,
+				'order' => array($value['groupOrderField'] => $value['direction']),
+			);
 		}
 		$this->data['aggs'] = $arr;
+		return;
 	}
 
 	/**

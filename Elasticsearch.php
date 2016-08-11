@@ -1,6 +1,4 @@
 <?php
-namespace Callmejea\PhpElastic;
-
 /**
  * @author Jea
  * elasticsearch搜索基类, 不包含 mapping  setting 只有 search ,getOneDoc, delete
@@ -186,7 +184,7 @@ class Elasticsearch
      */
     public function call()
     {
-        self::miscellaneousFunc();
+        $this->miscellaneousFunc();
         // return $this->data;
         if (!$this->index || !$this->type) {
             $this->errorInfo = 'Error: You must set index,type,id before update and create';
@@ -208,7 +206,7 @@ class Elasticsearch
                     'result'      => json_decode($this->result, true),
                 );
 
-                return $debugInfo;
+                return $this->out($debugInfo);
             }
 
             $this->format();
@@ -216,9 +214,9 @@ class Elasticsearch
                 $this->outData['data'] = array();
             }
 
-            return $this->outData;
+            return $this->out($this->outData);
         } else {
-            return $this->errorMsgFunc();
+            return $this->out($this->errorMsgFunc());
         }
     }
 
@@ -252,6 +250,12 @@ class Elasticsearch
         return true;
     }
 
+    protected function buildSource()
+    {
+        $this->miscellaneousFunc();
+        return $this->data;
+    }
+
     /**
      * 返回错误信息
      * @return  array
@@ -264,6 +268,17 @@ class Elasticsearch
             'data'     => array(),
             'errorMsg' => $this->errorInfo,
         );
+    }
+
+    /**
+     * 在返回完成之后调用清理方法, 清理之前可能产生的数据
+     * @param  array $outData  需要输出的数据
+     * @return           return array
+     */
+    private function out($outData)
+    {
+        $this->clearParam();
+        return $outData;
     }
 
     /**
@@ -281,7 +296,7 @@ class Elasticsearch
         }
         //是否要求了聚合信息
         if (isset($this->param['needGroupBy']) && $this->param['needGroupBy'] === true) {
-            self::aggr();
+            $this->aggr();
         }
         //是否存在分页设置
         if (isset($this->param['from'])) {
@@ -439,11 +454,11 @@ class Elasticsearch
         //是否指定了搜索类型
         if (isset($this->param['searchType']) && isset($this->param['columns']) && isset($this->param['keyword'])) {
             //指定为, 多关键词查询, 需要指定查询的关键词, 类型, 一般为: phrase(短语匹配) 可选为其他, 看说明文档
-            $this->data['query']['filtered']['query'] = self::buildKeyword();
+            $this->data['query']['filtered']['query'] = $this->buildKeyword();
         }
         //是否存在过滤条件
         if (isset($this->param['filters'])) {
-            $this->data['query']['filtered']['filter'] = self::buildFilter();
+            $this->data['query']['filtered']['filter'] = $this->buildFilter();
         }
 
         return;
@@ -457,14 +472,14 @@ class Elasticsearch
     {
         $this->data = array();
         if (isset($this->param['searchType']) && isset($this->param['columns']) && isset($this->param['keyword'])) {
-            $this->data['query']['function_score']['query'] = self::buildKeyword();
+            $this->data['query']['function_score']['query'] = $this->buildKeyword();
         }
 
         //是否存在过滤条件
         if (isset($this->param['filters'])) {
-            $this->data['query']['function_score']['filter'] = self::buildFilter();
+            $this->data['query']['function_score']['filter'] = $this->buildFilter();
         }
-        $this->data['query']['function_score']['functions'] = self::selfSortRule();
+        $this->data['query']['function_score']['functions'] = $this->selfSortRule();
         if (isset($this->param['scoreMode'])) {
             $this->data['query']['function_score']["score_mode"] = $this->param['scoreMode'];
         }
@@ -529,8 +544,8 @@ class Elasticsearch
                     $filter['bool']['must'][]['range'][$value['field']]['lt'] = $value['value'][1];
                     break;
                 case 'not_between':
-                    $filter['bool']['should'][]['range'][$value['field']]['gt'] = $value['value'][0];
-                    $filter['bool']['should'][]['range'][$value['field']]['lt'] = $value['value'][1];
+                    $filter['bool']['should'][]['range'][$value['field']]['lt'] = $value['value'][0];
+                    $filter['bool']['should'][]['range'][$value['field']]['gt'] = $value['value'][1];
                     break;
                 case '>':
                     $filter['bool']['must'][]['range'][$value['field']]['gt'] = $value['value'];

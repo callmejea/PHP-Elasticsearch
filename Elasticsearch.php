@@ -338,19 +338,19 @@ class Elasticsearch
                             $this->errorMsg = 'use geoSrot must set attr,lat,lon,unit';
                             return;
                         }
-                        $this->data['sort'][] = array(
-                            array(
-                                '_geo_distance' => array(
-                                    'order'         => isset($geo['sort']) ? $geo['sort'] : 'asc',
-                                    "unit"          => $geo['unit'],
-                                    $geo['attr']    => array(
-                                        'lon' => $geo['lon'],
-                                        'lat' => $geo['lat'],
-                                    ),
-                                    'distance_type' => 'sloppy_arc',
-                                    'mode'          => 'min',
+                        $this->data['sort'][] =
+                        array(
+                            '_geo_distance' => array(
+                                'order'         => isset($geo['sort']) ? $geo['sort'] : 'asc',
+                                "unit"          => $geo['unit'],
+                                $geo['attr']    => array(
+                                    'lon' => $geo['lon'],
+                                    'lat' => $geo['lat'],
                                 ),
+                                'distance_type' => 'sloppy_arc',
+                                'mode'          => 'min',
                             ),
+
                         );
                     }
 
@@ -528,6 +528,10 @@ class Elasticsearch
                     $filter['bool']['must'][]['range'][$value['field']]['gt'] = $value['value'][0];
                     $filter['bool']['must'][]['range'][$value['field']]['lt'] = $value['value'][1];
                     break;
+                case 'not_between':
+                    $filter['bool']['should'][]['range'][$value['field']]['gt'] = $value['value'][0];
+                    $filter['bool']['should'][]['range'][$value['field']]['lt'] = $value['value'][1];
+                    break;
                 case '>':
                     $filter['bool']['must'][]['range'][$value['field']]['gt'] = $value['value'];
                     break;
@@ -597,7 +601,7 @@ class Elasticsearch
      */
     private function buildGeo()
     {
-        if (!isset($geoParam['distance']) || !isset($geoParam['unit']) || !isset($geoParam['lon']) || !isset($geoParam['lat'])) {
+        if (!isset($this->geoParam['distance']) || !isset($this->geoParam['unit']) || !isset($this->geoParam['lon']) || !isset($this->geoParam['lat'])) {
             $this->errorInfo = 'use geo Search you must set distance, unit,lon,lat';
 
             return array();
@@ -621,7 +625,7 @@ class Elasticsearch
      */
     private function buildGeoBox()
     {
-        if (!isset($geoParam['attr']) || !isset($geoParam['leftTopLat']) || !isset($geoParam['leftTopLon']) || !isset($geoParam['rightBottomLat'])
+        if (!isset($this->geoParam['attr']) || !isset($this->geoParam['leftTopLat']) || !isset($this->geoParam['leftTopLon']) || !isset($this->geoParam['rightBottomLat'])
             || !isset($geoParam['rightBottomLon'])
         ) {
             $this->errorInfo = 'use geoBox Search you must set $attr, $leftTopLat, $leftTopLon, $rightBottomLat, $rightBottomLon';
@@ -717,7 +721,7 @@ class Elasticsearch
     }
 
     /**
-     * 获取全部字段时 使用该方法, 格式化输出结果, 在没有定义fields时使用
+     * 格式化输出结果
      * @return null
      */
     private function sourceFormat()
@@ -740,8 +744,12 @@ class Elasticsearch
                     $highField       = $highLight[0];
                     $tmp[$highField] = $value['highlight'][$highField][0];
                 }
-                $tmp['_id']    = $value['_id'];
-                $tmp['_score'] = $value['_score']; //将得分返回
+                $tmp['_id'] = $value['_id'];
+                if (isset($value['sort'])) {
+                    $tmp['_score'] = $value['sort'];
+                } else {
+                    $tmp['_score'] = $value['_score']; //将得分返回
+                }
                 $res['data'][] = $tmp;
             }
         }

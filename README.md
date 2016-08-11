@@ -1,6 +1,6 @@
 # php-elasticsearch
-php 使用 elasticsearch 的类库, 官方的太过庞大, 造了个轮子
-理论上来讲, 在类库中的方法是可以随意组合的
+理论上来讲, 在类库中的方法是可以随意组合的,但, geo组合中必须是 geo 相关的才好
+允许多次调取排序
 
 ####1: 添加了debug参数 传入 $es->debug = true;
 
@@ -16,6 +16,7 @@ $data = array(
     'columns'    => array('encomname^10', 'promain^5'), #在这里代表的是:encomname会在基础查询权重上得分 * 10, promain会*5, 允许传入 float 类型, 如果降权, 可以传入 0.001 , 类似的
 )
 ```
+
 关于返回值: 如果有查询到结果, 那么会返回
 ```php
 array(
@@ -41,7 +42,7 @@ array(
 以下这部分是全部的使用开头都要这么写
 
 ```php
-use xxx\Elasticsearch;
+use Callmejea\PhpElastic\Elasticsearch;
 $es = new Elasticsearch;
 $host = '192.168.12.80'; #The host of you used where installed es
 $port = 9200;  #the port of your es ! must be integer
@@ -74,9 +75,12 @@ $data = array(
     //取多少条
     'size'       => 10, 
     #普通排序, 按照某个字段进行排序, 类似于: mysql 的order by
-    'sortField' => 'your filed',
-    #如果定义了sortField 则必须定义排序方式
-    'order' => 'asc'#或desc
+    'sort' => array(
+        'public' => array(
+            'sortField' => 'field',
+            'order' => 'desc || asc',
+        )
+    ),
     #下方是高亮选择, 不需要就不要写
     'highLight'  => true,  #显式的指定需要高亮
     'highClass'  => 'highClass',  #高亮的class名, 返回的是: <span class="$highClass">balabala</span>balabala
@@ -85,7 +89,7 @@ $data = array(
 );
 $res = $es->setParam($data)->search()->call();
 ```
-####3: 没有自定义排序并且没有filter规则, 仅仅是匹配出来结果的搜索
+####3: 匹配出来结果的搜索
 ```php
 $data = array(
     'index'      => 'Your index',
@@ -93,17 +97,22 @@ $data = array(
     'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改
     'keyword'    => array('field' => 'value'),# 需要匹配的关键字
     #普通排序, 按照某个字段进行排序, 类似于: mysql 的order by
-    'sortField' => 'addtime',
+    'sort' => array(
+        'public' => array(
+            array(
+                'sortField' => 'field',
+                'order' => 'desc || asc',
+            )
+        )
+    ),
     //分页配置, 从哪开始
     'from'       => 0,
     //取多少条
     'size'       => 10, 
-    #如果定义了sortField 则必须定义排序方式
-    'order' => 'asc'#或desc
 );
 $res = $es->setParam($data)->search()->call();
 ```
-####4: 有自定义排序并且有filter的搜索
+####4: 有自定义排序并且有filter的搜索, 可以传入 sort
 ```php
 $data = array(
     'index'      => 'Your index',
@@ -157,7 +166,7 @@ $data = array(
     'needGroupBy' => true,
   # 需要进行groupby的字段, 值可以是多个
     'aggColumns'  => array(
-        array('aggColumns' => 'group by field', 'groupOrderField' => 'order filed liek (_term, _count)', 'direction' => 'asc||desc'),
+        array('aggColumns' => 'group by field', 'groupOrderField' => 'order filed like (_term, _count)', 'direction' => 'asc||desc'),
     )
 #-------------------------------------
 );
@@ -225,4 +234,66 @@ $data = array(
 $es        = new Elasticsearch;
 $es->debug = true;
 $res       = $es->setHosts(array('host' => 'your ip', 'port' => your port))->setParam($data)->multiKeySearch()->call();
+```
+
+####9: 关于 $data['sort']
+```php
+$data['sort'] = array(
+    'dynamic' => array(
+        array(
+            'script' => "abs(doc['district_id'].value - input)", //你的动态计算的规则表达式
+            'params' => array(
+                'input' => 1,
+            ),
+            'order'  => 'ASC',
+        ),
+    ),
+    'public'  => array(
+        array(
+            'sortField' => 'community_id',
+            'order'     => 'asc',
+        ),
+    ),
+    'geo'     => array(
+        'attr' => '被查找的字段',
+        'lat'  => '维度',
+        'lon'  => '经度',
+        'unit' => '地理位置的单位',
+    ),
+);
+```
+
+
+####10:一次标准的返回结果
+```php
+Array
+(
+    [total] => 17
+    [time] => 3
+    [data] => Array
+        (
+            [0] => Array
+                (
+                    [field] => value
+                    [_id] => 存储的 _id
+                    [_score] =>  排序值得分, 如果有
+                )
+
+
+        )
+        //agg 的结果
+    [groups] => Array
+        (
+            [aggName] => Array
+                (
+                    [0] => Array
+                        (
+                            [key] => 3
+                            [doc_count] => 1
+                        )
+                )
+
+        )
+
+)
 ```

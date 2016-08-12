@@ -397,17 +397,11 @@ class Elasticsearch
         $this->data['query'] = $this->buildFilter();
         //如果设置should成立数量为0 或小于1 则强制为1
         $this->param['minNum'] = $this->param['minNum'] < 1 ? 1 : $this->param['minNum'];
-        $multiMatch            = array(
-            'multi_match' => array(
-                'query'  => $this->param['keyword'],
-                'type'   => 'phrase_prefix',
-                'fields' => $this->param['columns'],
-            ),
-        );
-        if (!$this->param['isEn']) {
-            unset($multiMatch['multi_match']['type']);
+        $multiMatch            = $this->buildKeyword();
+        /*if (!$this->param['isEn']) {
+        unset($multiMatch['multi_match']['type']);
         }
-
+         */
         $psType = 'should';
         if (count($this->param['keyword']) == 1) {
             $psType = 'must';

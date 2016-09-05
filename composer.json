@@ -15,7 +15,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "PhpElastic": "/"
+            "CallmeJea\\PhpElastic": "/"
         }
     },
     "require": {

@@ -2,47 +2,12 @@
 理论上来讲, 在类库中的方法是可以随意组合的,但, geo组合中必须是 geo 相关的才好
 允许多次调取排序
 
-####1: 添加了debug参数 传入 $es->debug = true;
-
- 将返回组装后的json和查询返回的数据
-
-####2: 允许控制多字段查询的权重, 方式如下: 
-```php
-$data = array(
-    'index'      => 'Your index',
-    'type'       => 'YourType',
-    'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改  如果是多关键字查询 有如下参数: cross_fields(出现在越多的字段得分越高) best_fields(匹配度越高得分越高) most_fields(出现频率越高得分越高)
-    'keyword'    => 'apple',# 需要匹配的关键字
-    'columns'    => array('encomname^10', 'promain^5'), #在这里代表的是:encomname会在基础查询权重上得分 * 10, promain会*5, 允许传入 float 类型, 如果降权, 可以传入 0.001 , 类似的
-)
-```
-
-关于返回值: 如果有查询到结果, 那么会返回
-```php
-array(
-  'total' => 42
-  'time' => 8
-  'data' =>array(
-    0=>array('filed'=>'value'),
-)
-```
-如果没有找到, 那么返回的data是空的, 
-
-如果遇到了错误, 那么会返回
-```php
-array(
-  'total' => 42
-  'time' => 8
-  'data'=>array()
-  'errorMsg' => '错误信息'
-)
-```
 ##正文开始:
 
 以下这部分是全部的使用开头都要这么写
 
-```php
-use Callmejea\PhpElastic\Elasticsearch;
+```php;
+use CallmeJea\PhpElastic\Elasticsearch;
 $es = new Elasticsearch;
 $host = '192.168.12.80'; #The host of you used where installed es
 $port = 9200;  #the port of your es ! must be integer
@@ -295,5 +260,42 @@ Array
 
         )
 
+)
+```
+
+
+####1: 添加了debug参数 传入 $es->debug = true;
+
+ 将返回组装后的json和查询返回的数据
+
+####2: 允许控制多字段查询的权重, 方式如下: 
+```php
+$data = array(
+    'index'      => 'Your index',
+    'type'       => 'YourType',
+    'searchType' => 'phrase', #是否定义搜索类型, 该搜索类型意思是短语匹配, 建议不修改  如果是多关键字查询 有如下参数: cross_fields(出现在越多的字段得分越高) best_fields(匹配度越高得分越高) most_fields(出现频率越高得分越高)
+    'keyword'    => 'apple',# 需要匹配的关键字
+    'columns'    => array('encomname^10', 'promain^5'), #在这里代表的是:encomname会在基础查询权重上得分 * 10, promain会*5, 允许传入 float 类型, 如果降权, 可以传入 0.001 , 类似的
+)
+```
+
+关于返回值: 如果有查询到结果, 那么会返回
+```php
+array(
+  'total' => 42
+  'time' => 8
+  'data' =>array(
+    0=>array('filed'=>'value'),
+)
+```
+如果没有找到, 那么返回的data是空的, 
+
+如果遇到了错误, 那么会返回
+```php
+array(
+  'total' => 42
+  'time' => 8
+  'data'=>array()
+  'errorMsg' => '错误信息'
 )
 ```

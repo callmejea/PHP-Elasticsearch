@@ -1,4 +1,6 @@
 <?php
+namespace CallmeJea\PhpElastic;
+
 /**
  * @author Jea
  * elasticsearch搜索基类, 不包含 mapping  setting 只有 search ,getOneDoc, delete

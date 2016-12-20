@@ -9,6 +9,8 @@ namespace CallmeJea\PhpElastic;
 class Elasticsearch
 {
 
+    //显示调试信息
+    public $debug = false;
     //保存最终的返回字段
     protected $columns = array();
     //地理位置相关参数, like array($attrLat, $attrLng, $lat, $lon, $distance, $minDistance = 0)
@@ -17,9 +19,6 @@ class Elasticsearch
     protected $dynamicParam = array();
     //保存除index, type, id之外的数据
     protected $param = null;
-    //显示调试信息
-    protected $debug = false;
-
     //排序字段
     private $sortField = '';
     //排序方式
@@ -55,6 +54,7 @@ class Elasticsearch
      * 设定连接地址
      *
      * @param array $hosts 链接地址 必须是: array('host' => 'host', 'port' => 'port')
+     *
      * @return object $this
      */
     public function setHosts($hosts)
@@ -68,6 +68,7 @@ class Elasticsearch
      * 设定查询参数
      *
      * @param array $data 需要的数组, 必须包含: index type 这两个
+     *
      * @return object $this
      */
     public function setParam($data)
@@ -79,6 +80,7 @@ class Elasticsearch
         $this->param    = $data;
         $this->uri      = $this->hosts . '/' . $this->index . '/' . $this->type . '/_search';
         $this->callType = 'post';
+
         return $this;
     }
 
@@ -86,6 +88,7 @@ class Elasticsearch
      * 设置curl超时时间
      *
      * @param  $time [description]
+     *
      * @return object $this
      */
     public function setCurlTime($time)
@@ -96,15 +99,41 @@ class Elasticsearch
     }
 
     /**
-     * 创建 或 更新一个文档 在setParam时, 必须要设定三个参数: index,type,id
+     * 创建 或 更新一个文档 在setParam时, 必须要设定参数: index,type 如果不传入id则自动生成id
      * @return object $this
      */
     public function save()
     {
-        $this->uri      = $this->hosts . '/' . $this->index . '/' . $this->type . '/' . $this->id;
-        $this->callType = 'put';
+        $this->uri = $this->hosts . '/' . $this->index . '/' . $this->type . '/' . $this->id;
+        if ($this->id) {
+            $this->callType = 'put';
+        } else {
+            //没有id, 则让es自动生成一个 此时必须走post
+            $this->callType = 'post';
+        }
+        if (!$this->index || !$this->type) {
+            $this->errorInfo = 'Error: You must set index,type before update and create';
+        }
+        //定义之后unset , 防止请求时造成错误的数据录入
+        unset($this->param['index']);
+        unset($this->param['type']);
+        unset($this->param['id']);
+        unset($this->param['isEn']);
+        $this->data = $this->param;
+
+        return $this;
+    }
+
+    /**
+     * 更新操作, 只更新传入的字段, 部分更新
+     * @return $this
+     */
+    public function updateDoc()
+    {
+        $this->uri      = $this->hosts . '/' . $this->index . '/' . $this->type . '/' . $this->id . '/_update';
+        $this->callType = 'update';
         if (!$this->id || !$this->index || !$this->type) {
-            $this->errorInfo = 'Error: You must set index,type,id before update and create';
+            $this->errorInfo = 'Error: You must set index,type before update';
         }
         //定义之后unset , 防止请求时造成错误的数据录入
         unset($this->param['index']);
@@ -132,7 +161,7 @@ class Elasticsearch
         return $this;
     }
 
-    /**0
+    /**
      * 获取一条记录的详情
      * @return object $this
      */
@@ -182,14 +211,15 @@ class Elasticsearch
 
     /**
      * 执行上面的, 将以上的结果进行组合, 并判断是否有错误, 如果有错误, 将会返回一个errorMsg,并且当前查询终止
-     * @return array
+     * @return mixed
      */
     public function call()
     {
         $this->miscellaneousFunc();
-        // return $this->data;
-        if (!$this->index || !$this->type) {
-            $this->errorInfo = 'Error: You must set index,type,id before update and create';
+        //echo json_encode($this->data);
+        //print_r($this->data);
+        if ($this->index === null || $this->type === null) {
+            $this->errorInfo = 'Error: You must set index,type before update,create,search';
         }
         if (!$this->errorInfo) {
             $this->ch = curl_init();
@@ -201,14 +231,16 @@ class Elasticsearch
             call_user_func(array($this, $this->callType));
             $this->result = curl_exec($this->ch);
             curl_close($this->ch);
+            //print_r($this->data);
             if ($this->debug) {
-                $debugInfo = array(
-                    'callUri'     => $this->uri,
+                $this->result = json_decode($this->result, true);
+                //$this->result              = isset($result['hits']) ? $result['hits'] : array();
+                $this->result['debugInfo'] = array(
+                    'params'      => $this->param,
                     'searchParam' => $this->data,
-                    'result'      => json_decode($this->result, true),
                 );
 
-                return $this->out($debugInfo);
+                return $this->out($this->result);
             }
 
             $this->format();
@@ -226,12 +258,12 @@ class Elasticsearch
      * 清除设定的相关参数
      * @return boolean
      */
-    public function clearParam()
+    public function clear()
     {
-        $this->debug        = false;
-        $this->hosts        = null;
-        $this->uri          = null;
-        $this->timeOut      = 30;
+        $this->debug = false;
+        //$this->hosts        = null;
+        $this->uri = null;
+        //$this->timeOut      = 10;
         $this->errorInfo    = null;
         $this->data         = array();
         $this->param        = null;
@@ -248,13 +280,14 @@ class Elasticsearch
         $this->columns      = array();
         $this->geoParam     = array();
         $this->dynamicParam = array();
-        $this->data         = array();
+
         return true;
     }
 
     protected function buildSource()
     {
         $this->miscellaneousFunc();
+
         return $this->data;
     }
 
@@ -264,22 +297,31 @@ class Elasticsearch
      */
     protected function errorMsgFunc()
     {
-        return array(
-            'total'    => 0,
-            'time'     => 0,
-            'data'     => array(),
-            'errorMsg' => $this->errorInfo,
+        $errorInfo = array(
+            'debugInfo' => array(
+                'params'      => $this->param,
+                'searchParam' => $this->data,
+            ),
+            'total'     => 0,
+            'time'      => 0,
+            'data'      => array(),
+            'errorMsg'  => $this->errorInfo,
+
         );
+
+        return $errorInfo;
     }
 
     /**
      * 在返回完成之后调用清理方法, 清理之前可能产生的数据
-     * @param  array $outData  需要输出的数据
-     * @return           return array
+     *
+     * @param  array $outData 需要输出的数据
+     *
+     * @return      array
      */
     private function out($outData)
     {
-        $this->clearParam();
+        //$this->clearParam();
         return $outData;
     }
 
@@ -329,7 +371,7 @@ class Elasticsearch
                 //普通排序
                 case 'public':
                     foreach ($v as $pub) {
-                        $this->data['sort'][] = array($pub['sortField'] => $pub['order']);
+                        $this->data['sort'][$pub['sortField']] = array('order' => strtolower($pub['order']), "ignore_unmapped" => true);
                     }
                     break;
                 //动态排序, 脚本
@@ -340,11 +382,13 @@ class Elasticsearch
                                 'type'   => 'number',
                                 'script' => array(
                                     'inline' => $dynamic['script'],
-                                    'params' => $dynamic['params'],
                                 ),
                                 'order'  => $dynamic['order'],
                             ),
                         );
+                        if (isset($dynamic['params']) && !empty($dynamic['params'])) {
+                            $sortArr['_script']['script']['params'] = $dynamic['params'];
+                        }
                         $this->data['sort'][] = $sortArr;
                     }
                     break;
@@ -353,6 +397,7 @@ class Elasticsearch
                     foreach ($v as $geo) {
                         if (!isset($geo['attr']) || !isset($geo['lat']) || !isset($geo['lon']) || !isset($geo['unit'])) {
                             $this->errorMsg = 'use geoSrot must set attr,lat,lon,unit';
+
                             return;
                         }
                         $this->data['sort'][] =
@@ -378,6 +423,7 @@ class Elasticsearch
                     break;
             }
         }
+
         return;
     }
 
@@ -387,30 +433,30 @@ class Elasticsearch
      */
     private function formatMultiTerm()
     {
-        if (!isset($this->param['columns']) || !is_array($this->param['columns']) || !isset($this->param['keyword']) || !is_array($this->param['keyword'])
-            || !isset($this->param['minNum'])
-        ) {
-            $this->errorInfo = 'When use multiKeySearch , columns and keyword must be an array! must set columns, keyword, minNum';
-
-            return $this;
-        }
         $this->data = array();
         //格式化bool query的filter
         $this->data['query'] = $this->buildFilter();
-        //如果设置should成立数量为0 或小于1 则强制为1
-        $this->param['minNum'] = $this->param['minNum'] < 1 ? 1 : $this->param['minNum'];
-        $multiMatch            = $this->buildKeyword();
-        /*if (!$this->param['isEn']) {
-        unset($multiMatch['multi_match']['type']);
+        if (isset($this->param['columns']) && is_array($this->param['columns']) && isset($this->param['keyword']) && is_array($this->param['keyword'])
+            && isset($this->param['minNum'])
+        ) {
+            //如果设置should成立数量为0 或小于1 则强制为1
+            $this->param['minNum'] = $this->param['minNum'] < 1 ? 1 : $this->param['minNum'];
+            $multiMatch            = array(
+                'multi_match' => array(
+                    'query'  => $this->param['keyword'],
+                    'type'   => $this->param['searchType'],
+                    'fields' => $this->param['columns'],
+                ),
+            );
+            if ($this->param['isEn']) {
+                $multiMatch['multi_match']['type'] = 'phrase_prefix';
+            }
+            $psType = 'should';
+            if (count($this->param['keyword']) == 1) {
+                $psType = 'must';
+            }
+            $this->data['query']['bool'][$psType][] = $multiMatch;
         }
-         */
-        $psType = 'should';
-        if (count($this->param['keyword']) == 1) {
-            $psType = 'must';
-        }
-        $this->data['query']['bool'][$psType][] = $multiMatch;
-        //最小匹配should的数量
-        $this->data['query']['bool']['minimum_should_match'] = $this->param['minNum'];
 
         return $this;
     }
@@ -431,9 +477,11 @@ class Elasticsearch
             $arr[$value['aggColumns']]['terms'] = array(
                 'field' => $value['aggColumns'],
                 'order' => array($value['groupOrderField'] => $value['direction']),
+                'size'  => isset($this->param['aggSize']) ? $this->param['aggSize'] : 10,
             );
         }
         $this->data['aggs'] = $arr;
+
         return;
     }
 
@@ -532,27 +580,50 @@ class Elasticsearch
     private function buildFilter()
     {
         $filter = array();
+        //print_r($this->param);die;
         foreach ($this->param['filters'] as $key => $value) {
+            $value['type'] = strtolower($value['type']);
             switch ($value['type']) {
                 //在两者之间
                 case 'between':
                     $filter['bool']['must'][]['range'][$value['field']]['gt'] = $value['value'][0];
                     $filter['bool']['must'][]['range'][$value['field']]['lt'] = $value['value'][1];
+                    $filter['bool']['should'][]['bool']['should'][]           = array(
+                        'term' => array(
+                            $value['field'] => $value['value'][0],
+                        ),
+                    );
                     break;
                 case 'not_between':
-                    $filter['bool']['should'][]['range'][$value['field']]['lt'] = $value['value'][0];
-                    $filter['bool']['should'][]['range'][$value['field']]['gt'] = $value['value'][1];
+                    //临时should条件
+                    $tmpFilterShould = array();
+
+                    $tmpFilterShould['bool']['should'][]['range'][$value['field']]['lt'] = $value['value'][0];
+                    $tmpFilterShould['bool']['should'][]['range'][$value['field']]['gt'] = $value['value'][1];
+                    //以便自增，格式不会损坏，不然es会无法认出
+                    $filter['bool']['should'][] = $tmpFilterShould;
+                    unset($tmpFilterShould);
                     break;
                 case '>':
                     $filter['bool']['must'][]['range'][$value['field']]['gt'] = $value['value'];
+                    $filter['bool']['should'][]['bool']['should'][]           = array(
+                        'term' => array(
+                            $value['field'] => $value['value'],
+                        ),
+                    );
                     break;
                 case '<':
                     $filter['bool']['must'][]['range'][$value['field']]['lt'] = $value['value'];
                     break;
                 case '=':
-                    $filter['bool']['must'][]['term'] = array(
-                        $value['field'] => $value['value'],
-                    );
+                    if (isset($value['termQuery']) && $value['termQuery'] === true) {
+                        $match_type                            = isset($value['match_type']) ? $value['match_type'] : 'match';
+                        $filter['bool']['must'][][$match_type] = array($value['field'] => $value['value']);
+                    } else {
+                        $filter['bool']['must'][]['term'] = array(
+                            $value['field'] => $value['value'],
+                        );
+                    }
                     break;
                 case '!=':
                     $filter['bool']['must_not'][]['term'] = array(
@@ -565,13 +636,18 @@ class Elasticsearch
 
                         return array();
                     }
+                    $tmpFilterShould = array();
                     foreach ($value['value'] as $k => $v) {
-                        $filter['bool']['should'][] = array(
+                        $tmpFilterShould['bool']['should'][] = array(
                             'term' => array(
                                 $value['field'] => $v,
                             ),
                         );
                     }
+                    $filter['bool']['should'][] = $tmpFilterShould;
+                    unset($tmpFilterShould);
+                    //最小匹配should的数量
+                    $filter['bool']['minimum_should_match'] = $this->param['minNum'];
                     break;
                 case 'not in':
                     if (!is_array($value['value'])) {
@@ -636,7 +712,8 @@ class Elasticsearch
      */
     private function buildGeoBox()
     {
-        if (!isset($this->geoParam['attr']) || !isset($this->geoParam['leftTopLat']) || !isset($this->geoParam['leftTopLon']) || !isset($this->geoParam['rightBottomLat'])
+        if (!isset($this->geoParam['attr']) || !isset($this->geoParam['leftTopLat']) || !isset($this->geoParam['leftTopLon'])
+            || !isset($this->geoParam['rightBottomLat'])
             || !isset($geoParam['rightBottomLon'])
         ) {
             $this->errorInfo = 'use geoBox Search you must set $attr, $leftTopLat, $leftTopLon, $rightBottomLat, $rightBottomLon';
@@ -728,6 +805,7 @@ class Elasticsearch
             }
             $this->outData['groups'] = $groups;
         }
+
         return;
     }
 
@@ -746,9 +824,12 @@ class Elasticsearch
         } else {
             $res['total'] = $format['hits']['total'];
             $res['time']  = $format['took'];
+            $res['data']  = array();
             foreach ($format['hits']['hits'] as $value) {
                 $tmp = $value['_source'];
-                if (isset($this->param['highLight']) && $this->param['highLight'] === true && isset($this->param['highClass']) && isset($this->param['highFields']) && isset($value['highlight'])
+                if (isset($this->param['highLight']) && $this->param['highLight'] === true && isset($this->param['highClass'])
+                    && isset($this->param['highFields'])
+                    && isset($value['highlight'])
                 ) {
                     $highLight = array_keys($this->param['highFields']);
                     //只允许高亮一个
@@ -797,6 +878,17 @@ class Elasticsearch
     private function put()
     {
         curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'PUT'); //设置请求方式设置HTTP头信息
+        curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($this->data)); //设置提交的字符串
+        return $this;
+    }
+
+    /**
+     * update 进行更新和查询操作
+     * @return object $this
+     */
+    private function update()
+    {
+        curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'UPDATE'); //设置请求方式设置HTTP头信息
         curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($this->data)); //设置提交的字符串
         return $this;
     }

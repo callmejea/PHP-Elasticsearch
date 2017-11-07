@@ -26,7 +26,7 @@ aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
 5.使用:
 ```php
 composer install 
-use Zhen22\Module\ElasticsearchClient\Client;
+use Callmejea\Module\ElasticsearchClient\Client;
 
 $es = new Client();
 $es->setHost('host', port default is 9200);

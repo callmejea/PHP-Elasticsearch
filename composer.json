@@ -1,24 +1,11 @@
 {
-    "name": "callmejea/php-elasticsearch",
-    "description": "a client of elasticsearch",
-    "keywords": [
-        "elasticsearch",
-        "php-elasticsearch"
-    ],
-    "homepage": "https://github.com/callmejea/php-elasticsearch",
-    "license": "Apache",
-    "authors": [
-        {
-            "name": "Jea",
-            "homepage": "https://github.com/callmejea/php-elasticsearch"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "CallmeJea\\PhpElastic\\": "/"
-        }
-    },
-    "require": {
-        "php":">=5.3"
+  "name": "php-module/elastic-php-based-official",
+  "require": {
+    "elasticsearch/elasticsearch": "~5.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Callmejea\\Module\\ElasticsearchClient\\": "src/"
     }
+  }
 }

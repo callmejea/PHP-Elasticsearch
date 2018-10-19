@@ -8,7 +8,7 @@ namespace Callmejea\Module\ElasticsearchClient;
  *
  * @DateTime 2017-06-23 15:48:14
  *
- * @sortDocUrl https://www.elastic.co/guide/en/elasticsearch/reference/5.4/search-request-sort.html
+ * @sortDocUrl https://www.elastic.co/guide/en/elasticsearch/reference/6.4/search-request-sort.html
  *
  * @package  Callmejea\Module\ElasticsearchClient
  */
@@ -408,7 +408,7 @@ class Client extends DSLBuilder {
 	 * @param mixed  $id      被更新的文档id
 	 * @param array  $data    要更新的信息
 	 * @param string $routing routing
-	 *
+	 * @throws \Exception
 	 * @return Format
 	 */
 	public function update($index, $type, $id, $data, $routing = '')
@@ -508,6 +508,7 @@ class Client extends DSLBuilder {
 
 	/**
 	 * es的多查询语句
+     * @throws \Exception
 	 * @return Format
 	 */
 	public function mSearch()
@@ -519,6 +520,7 @@ class Client extends DSLBuilder {
 
 	/**
 	 * 统计条件下的数量
+     * @throws \Exception
 	 * @return Format
 	 */
 	public function count()
@@ -552,6 +554,7 @@ class Client extends DSLBuilder {
 
 	/**
 	 * 返回json格式的es查询dsl
+     * @throws \Exception
 	 *
 	 * @return string
 	 */
@@ -564,6 +567,7 @@ class Client extends DSLBuilder {
 
 	/**
 	 * @return array
+     * @throws \Exception
 	 * 获取组装的dsl 数组
 	 */
 	public function getArrayDsl()

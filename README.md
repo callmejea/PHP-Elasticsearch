@@ -41,6 +41,7 @@ $res = $es
     ->orWhere('field', '=', value)
     ->orWhere('field', '!=', value)
     ->orWhere('field', '!=', value)
+    ->match($fields, $keywords, $matchType = 'phrase', $type = 'must')
     ->andWhereEnd()
     ->orderBy('field', 'value')
     ->offset($offset)

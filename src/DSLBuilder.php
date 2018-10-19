@@ -42,12 +42,13 @@ class DSLBuilder extends ClientBuilder {
 	 * 按照es的结构去组装数据源
 	 * 首先会过滤一遍数据, 按照keyArray来分割好条件
 	 * 分步骤进行查询和调取 filter, match sort aggregations
+     * @throws \Exception
 	 * @return array
 	 */
 	final protected function buildDsl()
 	{
 		$this->client = self::create()->setHosts($this->hosts)->build();
-		$queryType    = 'filtered';
+		$queryType    = 'bool';
 		if ( ! empty($this->params['filters']))
 		{
 			//这里处理层级 将开始和结束对应起来
@@ -132,6 +133,7 @@ class DSLBuilder extends ClientBuilder {
 	 * @param         $filters
 	 * @param integer $k        关键字出现的位置
 	 * @param string  $findType must should
+     * @throws \Exception
 	 *
 	 * @return array
 	 */
@@ -450,6 +452,7 @@ class DSLBuilder extends ClientBuilder {
 	 * 拼装排序数据, public geo script 三种格式的排序, 可混用
 	 *
 	 * @param $sortParams
+     * @throws \Exception
 	 *
 	 * @return array
 	 */

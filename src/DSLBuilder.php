@@ -45,7 +45,7 @@ class DSLBuilder extends ClientBuilder {
      * @throws \Exception
 	 * @return array
 	 */
-	final protected function buildDsl()
+	protected function buildDsl()
 	{
 		$this->client = self::create()->setHosts($this->hosts)->build();
 		$queryType    = 'bool';

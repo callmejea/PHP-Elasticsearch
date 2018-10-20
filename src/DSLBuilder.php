@@ -1,6 +1,6 @@
 <?php
 
-namespace Callmejea\Module\ElasticsearchClient;
+namespace PhpES\EsClient;
 
 use Elasticsearch\ClientBuilder;
 

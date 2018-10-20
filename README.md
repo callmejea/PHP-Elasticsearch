@@ -19,14 +19,11 @@ aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
    * 全部的查询都将被转换为: boolQuery
    * 本类适合进行筛选, 不合适做评分
 
-4.开发计划:
-    <br/>
-    规划中
 
 5.使用:
 ```php
 composer install 
-use Callmejea\Module\ElasticsearchClient\Client;
+use PhpES\EsClient\Client;
 
 $es = new Client();
 $es->setHost('host', port default is 9200);

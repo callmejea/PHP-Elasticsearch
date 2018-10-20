@@ -1,6 +1,6 @@
 <?php
 
-namespace Callmejea\Module\ElasticsearchClient;
+namespace PhpES\EsClient;
 
 /**
  * Class Client extends official library
@@ -202,7 +202,7 @@ class Client extends DSLBuilder {
 	}
 
 	/**
-	 * @desc 地址位置查询, 根据给出的坐标计算 xx范围内的 目前暂不提供or条件的geo查询
+	 * desc 地址位置查询, 根据给出的坐标计算 xx范围内的 目前暂不提供or条件的geo查询
 	 *
 	 * @param string  $geoField     需要进行geo查询的字段
 	 * @param float   $lat          纬度

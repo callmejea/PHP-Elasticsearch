@@ -1,6 +1,6 @@
 <?php
 
-namespace Callmejea\Module\ElasticsearchClient;
+namespace PhpES\EsClient;
 
 /**
  * 格式化es的返回结果

@@ -41,6 +41,19 @@ class Client extends DSLBuilder {
 
 		return $this;
 	}
+    
+    /**
+     * @throws \Exception
+     */
+	public function getClient(){
+	    if(empty($this->hosts)){
+	        throw new \Exception('using getClient , You must set host before');
+        }
+        if($this->client == null) {
+            $this->client = self::create()->setHosts($this->hosts)->build();
+        }
+        return $this->client;
+    }
 
 	/**
 	 * 查询特定的字段, 从数据库中

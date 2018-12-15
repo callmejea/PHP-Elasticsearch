@@ -21,8 +21,11 @@ aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
 
 
 5.使用:
+
+项目内: composer install
+ 
+引入: composer require php-module/elastic-php-based-official
 ```php
-composer install 
 use PhpES\EsClient\Client;
 
 $es = new Client();

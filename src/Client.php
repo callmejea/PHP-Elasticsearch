@@ -41,7 +41,7 @@ class Client extends DSLBuilder {
 
 		return $this;
 	}
-    
+
     /**
      * @throws \Exception
      */
@@ -559,7 +559,7 @@ class Client extends DSLBuilder {
 		}
 		catch (\Exception $e)
 		{
-			return $e->getMessage();
+            $res['error'] = $e->getMessage();
 		}
 
 		return $res;

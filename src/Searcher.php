@@ -14,9 +14,6 @@ class Searcher extends Client implements BaseSearcher {
 	protected static $instances = [
 		'default' => [],
 	];
-	private $geoField = 'geo_point_gaode';
-	private $config = array();
-	private $whereGeo = FALSE;
 
 	public function __construct($host = 'localhost', $port = 9200)
 	{

@@ -11,7 +11,7 @@ use Elasticsearch\ClientBuilder;
  * 全部的查询都将被转换为: boolQuery
  * 本类适合进行筛选, 不合适做评分
  *
- * @package Callmejea\Module\ElasticsearchClient
+ * @package PhpES\EsClient
  */
 class DSLBuilder extends ClientBuilder {
 

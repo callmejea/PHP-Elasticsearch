@@ -10,7 +10,7 @@ namespace PhpES\EsClient;
  *
  * @sortDocUrl https://www.elastic.co/guide/en/elasticsearch/reference/6.4/search-request-sort.html
  *
- * @package  Callmejea\Module\ElasticsearchClient
+ * @package  PhpES\EsClient
  */
 class Client extends DSLBuilder {
 

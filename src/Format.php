@@ -4,7 +4,7 @@ namespace PhpES\EsClient;
 
 /**
  * 格式化es的返回结果
- * @package Callmejea\Module\ElasticsearchClient
+ * @package PhpES\EsClient
  */
 class Format {
 

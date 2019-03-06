@@ -27,6 +27,7 @@ aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
 引入: composer require php-module/elastic-php-based-official
 ```php
 use PhpES\EsClient\Client;
+use PhpEs\EsClient\DSLBuilder;
 
 $es = new Client();
 $es->setHost('host', port default is 9200);
@@ -34,13 +35,13 @@ $es->setHost('host', port default is 9200);
 $res = $es
     ->select(array('field', 'field2'))
     ->from('index', 'type')
-    ->where('field', '=', 'value')
-    ->whereGeo('geo_point', , $lat, $lon, $distance, $minDistance = 0, $unit = 'm', $distanceType = 'sloppy_arc', $type = 'and')
-    ->orWhere('field', '!=', value8)
+    ->where('field', DSLBuilder::OPERATOR_EQ, 'value')
+    ->whereGeo('geo_point', $lat, $lon, $distance, $minDistance, $unit, $distanceType, $type)
+    ->orWhere('field', DSLBuilder::OPERATOR_NE, value8)
     ->andWhereBegin()
-    ->orWhere('field', '=', value)
-    ->orWhere('field', '!=', value)
-    ->orWhere('field', '!=', value)
+    ->orWhere('field', DSLBuilder::OPERATOR_EQ, value)
+    ->orWhere('field', DSLBuilder::OPERATOR_NE, value)
+    ->orWhere('field', DSLBuilder::OPERATOR_NE, value)
     ->match($fields, $keywords, $matchType = 'phrase', $type = 'must')
     ->andWhereEnd()
     ->orderBy('field', 'value')

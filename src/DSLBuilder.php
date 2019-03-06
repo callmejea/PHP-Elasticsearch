@@ -126,6 +126,25 @@ class DSLBuilder extends ClientBuilder
     const SORT_GEO = 'geo';
 
     /**
+     * 顺序排列
+     */
+    const SORT_DIRECTION_ASC = 'asc';
+
+    /**
+     * 倒序排列
+     */
+    const SORT_DIRECTION_DESC = 'desc';
+
+    /**
+     * 搜索类型 短语匹配
+     */
+    const MATCH_TYPE_PHRASE = 'phrase';
+    /**
+     * 搜索类型 短语匹配
+     */
+    const MATCH_TYPE_PHRASE_PREFIX = 'phrase_prefix';
+
+    /**
      * @var $client  \Elasticsearch\Client
      */
     public $client;

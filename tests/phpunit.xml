@@ -1,10 +1,9 @@
 <phpunit
-        bootstrap="/www/elastic-php-based-official/tests/bootstrap.php"
+        bootstrap="./bootstrap.php"
         colors="true"
         convertNoticesToExceptions="true"
         convertWarningsToExceptions="true"
         convertErrorsToExceptions="true"
-        syntaxCheck="true"
         verbose="true"
 >
     <php>
@@ -12,7 +11,7 @@
         <env name="ES_TEST_PORT" value="9200"/>
     </php>
     <testsuites>
-        <testsuite>
+        <testsuite name="esTest">
             <directory>/www/elastic-php-based-official/tests/</directory>
             <exclude>/www/elastic-php-based-official/tests/EsTests.php</exclude>
         </testsuite>

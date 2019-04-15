@@ -1,5 +1,5 @@
 <?php
-use Callmejea\Module\ElasticsearchClient\Client;
+use PhpES\EsClient\Client;
 
 include '../vendor/autoload.php';
 

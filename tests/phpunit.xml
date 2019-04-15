@@ -7,13 +7,13 @@
         verbose="true"
 >
     <php>
-        <env name="ES_TEST_HOST" value="http://localhost"/>
+        <env name="ES_TEST_HOST" value="http://192.168.8.200"/>
         <env name="ES_TEST_PORT" value="9200"/>
     </php>
     <testsuites>
         <testsuite name="esTest">
-            <directory>/www/elastic-php-based-official/tests/</directory>
-            <exclude>/www/elastic-php-based-official/tests/EsTests.php</exclude>
+            <directory>/www/myGit/PHP-Elasticsearch/tests/</directory>
+            <exclude>/www/myGit/PHP-Elasticsearch/tests/EsTests.php</exclude>
         </testsuite>
     </testsuites>
 </phpunit>

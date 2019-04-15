@@ -193,6 +193,10 @@ class DSLBuilder extends ClientBuilder
         if (!empty($this->params['aggregations'])) {
             $this->conditions['body']['aggs'] = $this->aggregations($this->params['aggregations']);
         }
+        // 是否需要中断
+        if (array_key_exists('terminate_after', $this->params)) {
+            $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
+        }
 
         return $this->conditions;
     }
@@ -201,7 +205,7 @@ class DSLBuilder extends ClientBuilder
      * 循环参数结构, 开始遍历
      * @throws \Exception
      *
-     * @param $filter
+     * @param $filters
      *
      * @return array
      */

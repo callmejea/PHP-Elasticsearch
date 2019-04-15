@@ -24,7 +24,7 @@ class EsTests extends TestCase
     public function testGeo($dsl)
     {
         $es = new Client();
-        $es->setHost('10.0.0.235', 9200);
+        $es->setHost($_ENV['ES_TEST_HOST'], $_ENV['ES_TEST_PORT']);
         $res = $es
             ->from('houses_1', 'house')
             ->where('city_id', DSLBuilder::OPERATOR_EQ, '4101')

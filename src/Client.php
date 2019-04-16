@@ -78,9 +78,11 @@ class Client extends DSLBuilder
     }
 
     /**
+     * 注意: 使用terminate需要设置的$terminateAfter需要值界定, 如页面需要展示30页, 每页10条, 那么建议: 设置为300
      * 增加参数: terminate_after
      * @param $terminateAfter
      * @throws ESORMException
+     * @return $this
      */
     public function terminate(int $terminateAfter)
     {
@@ -133,11 +135,14 @@ class Client extends DSLBuilder
      *                                best_fields(匹配度越高得分越高)
      *                                most_fields(出现频率越高得分越高)
      * @param string       $type      如果是多次调用了match,那么需要将关系列出来, 是必须都成立还是or, 目前没有复杂的关系写入
-     *
+     * @throws ESORMException
      * @return $this
      */
-    public function match($fields, $keywords, $matchType = 'phrase', $type = 'must')
+    public function match($fields, $keywords, $matchType = 'phrase', $type = DSLBuilder::MUST)
     {
+        if(is_array($keywords)){
+            throw new ESORMException('using match; keywords must be string; can not using array');
+        }
         if (!empty($fields) && !empty($keywords)) {
             $this->params['filters'][] = array(
                 'matchType' => $matchType,

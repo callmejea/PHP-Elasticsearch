@@ -143,6 +143,18 @@ class DSLBuilder extends ClientBuilder
      * 搜索类型 短语匹配
      */
     const MATCH_TYPE_PHRASE_PREFIX = 'phrase_prefix';
+    /**
+     * 匹配度高的字段评分高
+     */
+    const MATCH_TYPE_BEST_FIELDS = 'best_fields';
+    /**
+     * 一个关键词出现在多个字段 评分高
+     */
+    const MATCH_TYPE_CROSS_FIELDS = 'cross_fields';
+    /**
+     * 出现在越多的字段越高评分
+     */
+    const MATCH_TYPE_MOST_FIELDS = 'most_fields';
 
     /**
      * @var $client  \Elasticsearch\Client
@@ -285,11 +297,7 @@ class DSLBuilder extends ClientBuilder
      */
     private function buildMatch($match)
     {
-        $boolType = self::SHOULD;
-        if (count($match['keywords']) == 1 && count($match['fields']) == 1) {
-            $boolType = self::MUST;
-        }
-        $matchArr[self::QUERY_TYPE_BOOL][$boolType] = array(
+        $matchArr[self::QUERY_TYPE_BOOL][$match['type']] = array(
             self::MULTI_MATCH => array(
                 'query'  => $match['keywords'],
                 'type'   => $match['matchType'],

@@ -31,7 +31,14 @@ use PhpEs\EsClient\DSLBuilder;
 
 $es = new Client();
 $es->setHost('host', port default is 9200);
-
+/**
+ * matchType 可选项:
+ * phrase 短语匹配
+ * phrase_prefix 前缀匹配
+ * cross_fields(出现在越多的字段得分越高)
+ * best_fields(匹配度越高得分越高)
+ * most_fields(出现频率越高得分越高)
+*/
 $res = $es
     ->select(array('field', 'field2'))
     ->from('index', 'type')
@@ -42,7 +49,7 @@ $res = $es
     ->orWhere('field', DSLBuilder::OPERATOR_EQ, value)
     ->orWhere('field', DSLBuilder::OPERATOR_NE, value)
     ->orWhere('field', DSLBuilder::OPERATOR_NE, value)
-    ->match($fields, $keywords, $matchType = 'phrase', $type = 'must')
+    ->match(要匹配的字段(单个字段或数组), "关键词", $matchType = 'phrase', $type = 'must')
     ->andWhereEnd()
     ->orderBy('field', 'value')
     ->offset($offset)

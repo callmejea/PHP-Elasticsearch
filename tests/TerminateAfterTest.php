@@ -27,7 +27,6 @@ class TerminateAfterTest extends TestCase
             ->limit(10)
             ->debug()
             ->getJsonDsl();
-        echo $res;
         $dsl = '{"query":{"bool":{"filter":{"bool":{"must":[{"bool":{"must":[{"term":{"projectid":44}}]}}]}}}},"sort":[{"_id":{"order":"desc"}}],"terminate_after":3}';
         $this->assertEquals($dsl,$res);
     }

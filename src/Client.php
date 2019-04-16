@@ -125,11 +125,10 @@ class Client extends DSLBuilder
      * 搜索关键词, 修改为可以并列调取多次, 目前允许关键词的多次调用, 在结果中会被展示出来
      *
      * @param array|string $fields    要匹配的字段
-     * @param array|string $keywords  值
+     * @param string       $keywords  要搜索的字符串
      * @param string       $matchType allow :
      *                                phrase 短语匹配
      *                                phrase_prefix 前缀匹配
-     *                                ----- 以下三个在本类不生效
      *                                cross_fields(出现在越多的字段得分越高)
      *                                best_fields(匹配度越高得分越高)
      *                                most_fields(出现频率越高得分越高)

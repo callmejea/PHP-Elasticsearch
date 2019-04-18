@@ -1,10 +1,10 @@
-1.为什么写
+### 为什么写
 
 ```text
 由于php版本es操作依赖httpAPI来操作数据, 并且官方的API需要仔细研读方可使用,  这里出现了二封版本的MySQL 操作类
 ```
 
-2.支持的API
+### 支持的API
 ```
 filter{geo where and or in "not in" > >= < <= between not_between = != geo geoBox}  各种where条件
 search 直接走了multi_match; 
@@ -14,13 +14,13 @@ search 直接走了multi_match;
 aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
 ```
     
-3.不支持的API
+### 不支持的API
    * 目暂不支持function_score, bucket, scroll
    * 全部的查询都将被转换为: boolQuery
    * 本类适合进行筛选, 不合适做评分
 
 
-5.使用:
+### 使用:
 
 项目内: composer install
  
@@ -58,6 +58,30 @@ $res = $es
     ->search()
     ->getFormat();
 ```
-6.其他
+### 单例模式中不使用连接池
+```php
+# 继承Client, 重写getClient, 实例化Client时用: setHandler来设置链接数量
+class classNmae extends Client{
+
+    /**
+     * @throws \Exception
+     */
+    public function getClient()
+    {
+        if (empty($this->hosts)) {
+            throw new \Exception('using getClient , You must set host before');
+        }
+        if ($this->client == null) {
+            $this->client = self::create()
+                ->setHosts($this->hosts)
+                ->setHandler(new CurlHandler(['max_handles' => 0]))
+                ->build();
+        }
+        return $this->client;
+    }
+}
+
+```
+### 其他
 感谢真二网允许我公开此代码
 [http://www.zhen22.com](http://www.zhen22.com)

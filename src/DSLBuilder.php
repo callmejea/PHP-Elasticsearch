@@ -188,8 +188,10 @@ class DSLBuilder extends ClientBuilder
      */
     protected function buildDsl()
     {
-        $this->client = self::create()->setHosts($this->hosts)->build();
-        $queryType    = self::QUERY_TYPE_BOOL;
+        if ($this->client == null) {
+            $this->client = self::create()->setHosts($this->hosts)->build();
+        }
+        $queryType = self::QUERY_TYPE_BOOL;
         if (!empty($this->params['filters'])) {
             //这里处理层级 将开始和结束对应起来
             $this->getMultiKeys($this->params['filters']);

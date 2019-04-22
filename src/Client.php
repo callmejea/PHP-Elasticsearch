@@ -140,7 +140,7 @@ class Client extends DSLBuilder
      */
     public function match($fields, $keywords, $matchType = 'phrase', $type = DSLBuilder::MUST)
     {
-        if(is_array($keywords)){
+        if (is_array($keywords)) {
             throw new ESORMException('using match; keywords must be string; can not using array');
         }
         if (!empty($fields) && !empty($keywords)) {
@@ -436,16 +436,17 @@ class Client extends DSLBuilder
     /**
      * 更新字段 部分更新, 如果不存在将会返回错误
      *
-     * @param string $index   索引名
-     * @param string $type    type名
-     * @param mixed  $id      被更新的文档id
-     * @param array  $data    要更新的信息
-     * @param string $routing routing
+     * @param string  $index       索引名
+     * @param string  $type        type名
+     * @param mixed   $id          被更新的文档id
+     * @param array   $data        要更新的信息
+     * @param string  $routing     routing
+     * @param boolean $docAsUpsert 是否是执行 "doc_as_upsert" : true
      * @throws ESORMException
      * @throws \Exception
      * @return Format
      */
-    public function update($index, $type, $id, $data, $routing = '')
+    public function update($index, $type, $id, $data, $routing = '', $docAsUpsert = false)
     {
         if (empty($index) || empty($type) || empty($id) || empty($data)) {
             throw new ESORMException('in update , you must set index type id data');
@@ -457,6 +458,9 @@ class Client extends DSLBuilder
             'id'    => $id,
             'body'  => array('doc' => $data),
         );
+        if ($docAsUpsert) {
+            $params['body']['doc_as_upsert'] = true;
+        }
 
         if ($routing !== '') {
             $params['routing'] = $routing;

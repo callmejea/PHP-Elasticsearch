@@ -11,7 +11,7 @@
   },
   "extra": {
     "hyperf": {
-      "config": " PhpES\\EsClient\\Client\\ConfigProvider"
+      "config": " PhpES\\EsClient\\ConfigProvider"
     }
   }
 }

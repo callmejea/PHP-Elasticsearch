@@ -32,10 +32,10 @@ class Client extends DSLBuilder
         return $this;
     }
 
-    public function setHost($clientConfig)
+    public static function setHost($clientConfig)
     {
-        $this->clientConfig = $clientConfig;
-        return $this;
+        self::$clientConfig = $clientConfig;
+        return new static();
     }
 
     /**
@@ -80,7 +80,7 @@ class Client extends DSLBuilder
      *
      * @return $this
      */
-    public function from($index, $type)
+    public function from($index, $type = "_docs")
     {
         $this->conditions['index'] = $index;
         $this->conditions['type']  = $type;

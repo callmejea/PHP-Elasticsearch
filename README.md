@@ -42,7 +42,7 @@ $es = new Client();
 */
 $res = $es
     ->select(array('field', 'field2'))
-    ->from('index', 'type')
+    ->from('index')
     ->where('field', DSLBuilder::OPERATOR_EQ, 'value')
     ->whereGeo('geo_point', $lat, $lon, $distance, $minDistance, $unit, $distanceType, $type)
     ->orWhere('field', DSLBuilder::OPERATOR_NE, value8)

@@ -156,7 +156,7 @@ class DSLBuilder extends ClientBuilder
      */
     const MATCH_TYPE_MOST_FIELDS = 'most_fields';
 
-    public $clientConfig;
+    public static $clientConfig;
     /**
      * @var $client  \Elasticsearch\Client
      */
@@ -188,7 +188,7 @@ class DSLBuilder extends ClientBuilder
     protected function buildDsl()
     {
         if ($this->client == null) {
-            $this->client = $this->fromConfig($this->clientConfig);
+            $this->client = $this->fromConfig(self::$clientConfig);
         }
         $queryType = self::QUERY_TYPE_BOOL;
         if (!empty($this->params['filters'])) {

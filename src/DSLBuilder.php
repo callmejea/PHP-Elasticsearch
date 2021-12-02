@@ -168,8 +168,6 @@ class DSLBuilder extends ClientBuilder
     );
     protected $conditions = array(); //组合后的查询语句放在这里
 
-    protected $hosts = array();
-
     protected $sort = array(); //排序参数
     //存储嵌套查询的序列对应关系, 基本的结构
     protected $keyArray = array(
@@ -189,7 +187,7 @@ class DSLBuilder extends ClientBuilder
     protected function buildDsl()
     {
         if ($this->client == null) {
-            $this->client = self::create()->setHosts($this->hosts)->build();
+            $this->client = self::create()->build();
         }
         $queryType = self::QUERY_TYPE_BOOL;
         if (!empty($this->params['filters'])) {

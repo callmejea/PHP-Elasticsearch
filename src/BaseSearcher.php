@@ -23,7 +23,7 @@ interface BaseSearcher {
 	 *
 	 * @return  object
 	 */
-	public function order_by($attr, $direction);
+	public function orderBy($attr, $direction);
 
 	/**
 	 * @param string  $attr 需要对比的字段
@@ -32,7 +32,7 @@ interface BaseSearcher {
 	 *
 	 * @return object
 	 */
-	public function where_range($attr, $min, $max, $asFloat = FALSE);
+	public function whereRange($attr, $min, $max, $asFloat = FALSE);
 
 	/**
 	 * desc 地址位置查询, 根据给出的坐标计算 xx范围内的 目前暂不提供or条件的geo查询
@@ -48,7 +48,7 @@ interface BaseSearcher {
 	 *
 	 * @return object
 	 */
-	public function where_geo($geoField, $lat, $lon, $distance, $minDistance = 0, $unit = 'm', $distanceType = 'sloppy_arc', $type = 'must');
+	public function whereGeo($geoField, $lat, $lon, $distance, $minDistance = 0, $unit = 'm', $distanceType = 'sloppy_arc', $type = 'must');
 
 	/**
 	 * 圈定的矩形搜索框内查找
@@ -63,7 +63,7 @@ interface BaseSearcher {
 	 *
 	 * @return object
 	 */
-	public function where_geo_box($geoField, $attr, $leftTopLat, $leftTopLon, $rightBottomLat, $rightBottomLon, $type = 'must');
+	public function whereGeoBox($geoField, $attr, $leftTopLat, $leftTopLon, $rightBottomLat, $rightBottomLon, $type = 'must');
 
 	/**
 	 * 根据地理位置的坐标来排序 ,默认正序
@@ -77,7 +77,7 @@ interface BaseSearcher {
 	 *
 	 * @return object
 	 */
-	public function order_by_geo($field, $lat, $lon, $distanceType = 'sloppy_arc', $order = 'asc', $mode = 'min');
+	public function orderByGeo($field, $lat, $lon, $distanceType = 'sloppy_arc', $order = 'asc', $mode = 'min');
 
 	/**
 	 * 动态计算, 根据传入值和索引中存储的值做计算,
@@ -88,7 +88,7 @@ interface BaseSearcher {
 	 *
 	 * @return  object
 	 */
-	public function order_by_near($attr, $value, $direction = 'ASC');
+	public function orderByNear($attr, $value, $direction = 'ASC');
 
 	/**
 	 * 动态计算排序 作为sort类型,  计算结果必须是number 因此不再定义
@@ -100,7 +100,7 @@ interface BaseSearcher {
 	 *
 	 * @return object
 	 */
-	public function order_by_script($script, $params, $direction);
+	public function orderByScript($script, $params, $direction);
 
 	/**
 	 * @deprecated
@@ -121,7 +121,7 @@ interface BaseSearcher {
 	 *
 	 * @return mixed
 	 */
-	public function match_prefix($field, $value);
+	public function matchPrefix($field, $value);
 
 	/**
 	 * 聚合信息, 类似于: group by 兼容sphinx 类库中的名字, es的叫: aggregations
@@ -133,7 +133,7 @@ interface BaseSearcher {
 	 *
 	 * @return object
 	 */
-	public function group_by($field, $groupOrderField = '_count', $direction = 'ASC', $size = 10);
+	public function groupBy($field, $groupOrderField = '_count', $direction = 'ASC', $size = 10);
 
 	public function execute();
 }

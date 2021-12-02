@@ -30,43 +30,7 @@ class Client extends DSLBuilder
      */
     public function __construct()
     {
-        $builder = new static();
-        if (Coroutine::getCid() > 0) {
-            $builder->setHandler(new CoroutineHandler());
-        }
-
-        return $builder;
-    }
-
-
-
-    /**
-     * Client constructor.
-     *
-     * @param string $host es server host
-     * @param int    $port es server port
-     *
-     * @return $this
-     */
-    public function setHost($host = 'localhost', $port = 9200)
-    {
-        $this->hosts = array($host . ':' . $port);
-
         return $this;
-    }
-
-    /**
-     * @throws ESORMException
-     */
-    public function getClient()
-    {
-        if (empty($this->hosts)) {
-            throw new ESORMException('using getClient , You must set host before');
-        }
-        if ($this->client == null) {
-            $this->client = self::create()->setHosts($this->hosts)->build();
-        }
-        return $this->client;
     }
 
     /**
@@ -74,8 +38,8 @@ class Client extends DSLBuilder
      *
      * @param array $source select fields
      *
-     * @throws ESORMException
      * @return  $this
+     * @throws ESORMException
      */
     public function select($source)
     {
@@ -91,8 +55,8 @@ class Client extends DSLBuilder
      * 注意: 使用terminate需要设置的$terminateAfter需要值界定, 如页面需要展示30页, 每页10条, 那么建议: 设置为300
      * 增加参数: terminate_after
      * @param $terminateAfter
-     * @throws ESORMException
      * @return $this
+     * @throws ESORMException
      */
     public function terminate(int $terminateAfter)
     {
@@ -145,8 +109,8 @@ class Client extends DSLBuilder
      *                                best_fields(匹配度越高得分越高)
      *                                most_fields(出现频率越高得分越高)
      * @param string       $type      如果是多次调用了match,那么需要将关系列出来, 是必须都成立还是or, 目前没有复杂的关系写入
-     * @throws ESORMException
      * @return $this
+     * @throws ESORMException
      */
     public function match($fields, $keywords, $matchType = 'phrase', $type = DSLBuilder::MUST)
     {
@@ -356,8 +320,8 @@ class Client extends DSLBuilder
     /**
      * 手动设定 根据某个字段来进行排序
      *
-     * @param   string $attr      被排序的字段
-     * @param   string $direction 排序方式, 默认 ASC
+     * @param string $attr      被排序的字段
+     * @param string $direction 排序方式, 默认 ASC
      *
      * @return  $this
      */
@@ -375,9 +339,9 @@ class Client extends DSLBuilder
     /**
      * 动态计算, 根据传入值和索引中存储的值做计算,
      *
-     * @param   string  $attr      需要被计算的字段
-     * @param   integer $value     拿来做数学计算的参照值
-     * @param   string  $direction 动态排序方式,  ASC || DESC
+     * @param string  $attr      需要被计算的字段
+     * @param integer $value     拿来做数学计算的参照值
+     * @param string  $direction 动态排序方式,  ASC || DESC
      *
      * @return  $this
      */
@@ -452,9 +416,9 @@ class Client extends DSLBuilder
      * @param array   $data        要更新的信息
      * @param string  $routing     routing
      * @param boolean $docAsUpsert 是否是执行 "doc_as_upsert" : true
-     * @throws ESORMException
-     * @throws \Exception
      * @return Format
+     * @throws \Exception
+     * @throws ESORMException
      */
     public function update($index, $type, $id, $data, $routing = '', $docAsUpsert = false)
     {
@@ -488,10 +452,10 @@ class Client extends DSLBuilder
      * @param array  $data    要新增的信息
      * @param string $routing routing
      *
-     * @throws ESORMException
+     * @return Format
      * @throws \Exception
      *
-     * @return Format
+     * @throws ESORMException
      */
     public function insert($index, $type, $id, $data, $routing = '')
     {
@@ -519,10 +483,10 @@ class Client extends DSLBuilder
      * @param string $type  type name
      * @param mixed  $id    id you want delete
      *
-     * @throws ESORMException
+     * @return Format
      * @throws \Exception
      *
-     * @return Format
+     * @throws ESORMException
      */
     public function delete($index, $type, $id)
     {
@@ -541,8 +505,8 @@ class Client extends DSLBuilder
 
     /**
      * es查询, 搜索
-     * @throws \Exception
      * @return Format
+     * @throws \Exception
      */
     public function search()
     {
@@ -553,8 +517,8 @@ class Client extends DSLBuilder
 
     /**
      * es的多查询语句
-     * @throws \Exception
      * @return Format
+     * @throws \Exception
      */
     public function mSearch()
     {
@@ -565,8 +529,8 @@ class Client extends DSLBuilder
 
     /**
      * 统计条件下的数量
-     * @throws \Exception
      * @return Format
+     * @throws \Exception
      */
     public function count()
     {
@@ -596,10 +560,10 @@ class Client extends DSLBuilder
 
     /**
      * 返回json格式的es查询dsl
-     * @throws ESORMException
+     * @return string
      * @throws \Exception
      *
-     * @return string
+     * @throws ESORMException
      */
     public function getJsonDsl()
     {

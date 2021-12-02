@@ -5,6 +5,7 @@
 ```
 
 ### 支持的API
+
 ```
 filter{geo where and or in "not in" > >= < <= between not_between = != geo geoBox}  各种where条件
 search 直接走了multi_match; 
@@ -13,24 +14,24 @@ search 直接走了multi_match;
             phrase_prefix: 前缀匹配
 aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
 ```
-    
-### 不支持的API
-   * 目暂不支持function_score, bucket, scroll
-   * 全部的查询都将被转换为: boolQuery
-   * 本类适合进行筛选, 不合适做评分
 
+### 不支持的API
+
+* 目暂不支持function_score, bucket, scroll
+* 全部的查询都将被转换为: boolQuery
+* 本类适合进行筛选, 不合适做评分
 
 ### 使用:
 
 项目内: composer install
- 
+
 引入: composer require php-module/elastic-php-based-official
+
 ```php
 use PhpES\EsClient\Client;
 use PhpEs\EsClient\DSLBuilder;
 
 $es = new Client();
-$es->setHost('host', port default is 9200);
 /**
  * matchType 可选项:
  * phrase 短语匹配
@@ -58,7 +59,9 @@ $res = $es
     ->search()
     ->getFormat();
 ```
+
 ### 单例模式中不使用连接池
+
 ```php
 # 继承Client, 重写getClient, 实例化Client时用: setHandler来设置链接数量
 class classNmae extends Client{
@@ -82,6 +85,15 @@ class classNmae extends Client{
 }
 
 ```
-### 其他
-感谢真二网允许我公开此代码
-[http://www.zhen22.com](http://www.zhen22.com)
+
+### 使用连接池,从这里复制了一份
+
+[https://github.com/hyperf-ext/elasticsearch](https://github.com/hyperf-ext/elasticsearch)
+
+```
+    <?php
+        use PhpES\EsClient\Client;
+        use Hyperf\Utils\ApplicationContext;
+        $client = ApplicationContext::getContainer()->get(Client::class);
+        $info = $client->info();
+```

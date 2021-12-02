@@ -8,5 +8,10 @@
     "psr-4": {
       "PhpES\\EsClient\\": "src/"
     }
+  },
+  "extra": {
+    "hyperf": {
+      "config": " PhpES\\EsClient\\Client\\ConfigProvider"
+    }
   }
 }

@@ -34,6 +34,6 @@ class ClientFactory
             $clientConfig['handler'] = $handler;
         }
 
-        return Client::fromConfig($clientConfig);
+        return Client::setHost($clientConfig);
     }
 }

@@ -19,7 +19,6 @@ use Swoole\Coroutine;
  */
 class Client extends DSLBuilder
 {
-
     private $debug = FALSE;
     //定义嵌套查询的开始位置, 每次end之后删除最大节点
     public $multiKeys = array();
@@ -30,6 +29,12 @@ class Client extends DSLBuilder
      */
     public function __construct()
     {
+        return $this;
+    }
+
+    public function setHost($clientConfig)
+    {
+        $this->clientConfig = $clientConfig;
         return $this;
     }
 

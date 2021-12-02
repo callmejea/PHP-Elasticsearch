@@ -156,6 +156,7 @@ class DSLBuilder extends ClientBuilder
      */
     const MATCH_TYPE_MOST_FIELDS = 'most_fields';
 
+    public $clientConfig;
     /**
      * @var $client  \Elasticsearch\Client
      */
@@ -181,13 +182,13 @@ class DSLBuilder extends ClientBuilder
      * 按照es的结构去组装数据源
      * 首先会过滤一遍数据, 按照keyArray来分割好条件
      * 分步骤进行查询和调取 filter, match sort aggregations
-     * @throws \Exception
      * @return array
+     * @throws \Exception
      */
     protected function buildDsl()
     {
         if ($this->client == null) {
-            $this->client = self::create()->build();
+            $this->client = $this->fromConfig($this->clientConfig);
         }
         $queryType = self::QUERY_TYPE_BOOL;
         if (!empty($this->params['filters'])) {
@@ -215,11 +216,11 @@ class DSLBuilder extends ClientBuilder
 
     /**
      * 循环参数结构, 开始遍历
-     * @throws \Exception
-     *
      * @param $filters
      *
      * @return array
+     * @throws \Exception
+     *
      */
     private function buildFilter($filters)
     {
@@ -268,9 +269,9 @@ class DSLBuilder extends ClientBuilder
      * @param         $filters
      * @param integer $k        关键字出现的位置
      * @param string  $findType must should
+     * @return array
      * @throws \Exception
      *
-     * @return array
      */
     private function buildMulti($k, $findType)
     {
@@ -359,8 +360,8 @@ class DSLBuilder extends ClientBuilder
      *
      * @param array $filter $filters 的子元素
      *
-     * @throws \Exception
      * @return array
+     * @throws \Exception
      */
     private function buildGeo($filter)
     {
@@ -391,8 +392,8 @@ class DSLBuilder extends ClientBuilder
      *
      * @param array $filter $filters 的子元素
      *
-     * @throws \Exception
      * @return array
+     * @throws \Exception
      */
     private function buildGeoBox($filter)
     {
@@ -428,8 +429,8 @@ class DSLBuilder extends ClientBuilder
      *
      * @param array $filter filters中的条件
      *
-     * @throws \Exception
      * @return array
+     * @throws \Exception
      */
     private function buildFilterContent($filter)
     {
@@ -535,8 +536,8 @@ class DSLBuilder extends ClientBuilder
      * @param array $params 聚合的数据结构
      *
      * @cross Client function groupBy
-     * @throws \Exception
      * @return array
+     * @throws \Exception
      */
     private function aggregations($params)
     {
@@ -563,9 +564,9 @@ class DSLBuilder extends ClientBuilder
      * 拼装排序数据, public geo script 三种格式的排序, 可混用
      *
      * @param $sortParams
+     * @return array
      * @throws \Exception
      *
-     * @return array
      */
     private function buildSort($sortParams)
     {
@@ -585,8 +586,8 @@ class DSLBuilder extends ClientBuilder
      *
      * @param $param
      *
-     * @throws  \Exception
      * @return array
+     * @throws  \Exception
      */
     private function buildSortContent($param)
     {

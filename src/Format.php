@@ -14,7 +14,7 @@ class Format {
 	public $params = FALSE;
 	public $conditions = FALSE;
 
-	public function __construct($result, $debug = FALSE, $params, $conditions)
+	public function __construct($result, $debug, $params, $conditions)
 	{
 		$this->result     = $result;
 		$this->debug      = $debug;

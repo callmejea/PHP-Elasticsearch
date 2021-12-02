@@ -3,6 +3,9 @@
 namespace PhpES\EsClient;
 
 use PhpES\EsClient\ESORMException;
+use Elasticsearch\ClientBuilder;
+use Hyperf\Guzzle\RingPHP\CoroutineHandler;
+use Swoole\Coroutine;
 
 /**
  * Class Client extends official library
@@ -27,8 +30,15 @@ class Client extends DSLBuilder
      */
     public function __construct()
     {
-        return $this;
+        $builder = new static();
+        if (Coroutine::getCid() > 0) {
+            $builder->setHandler(new CoroutineHandler());
+        }
+
+        return $builder;
     }
+
+
 
     /**
      * Client constructor.

@@ -1,7 +1,7 @@
 {
   "name": "php-module/elastic-php-based-official",
   "require": {
-    "elasticsearch/elasticsearch": "~6.0",
+    "hyperf/elasticsearch": "~2.2.0",
     "ext-json": "*"
   },
   "autoload": {

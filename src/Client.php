@@ -73,17 +73,15 @@ class Client extends DSLBuilder
     }
 
     /**
-     * 设置当前es的查询index和type
+     * 设置当前es的查询index
      *
      * @param string $index index name
-     * @param string $type  type name
      *
      * @return $this
      */
-    public function from($index, $type = "_docs")
+    public function from($index)
     {
         $this->conditions['index'] = $index;
-        $this->conditions['type']  = $type;
 
         return $this;
     }
@@ -416,7 +414,6 @@ class Client extends DSLBuilder
      * 更新字段 部分更新, 如果不存在将会返回错误
      *
      * @param string  $index       索引名
-     * @param string  $type        type名
      * @param mixed   $id          被更新的文档id
      * @param array   $data        要更新的信息
      * @param string  $routing     routing
@@ -425,20 +422,19 @@ class Client extends DSLBuilder
      * @throws \Exception
      * @throws ESORMException
      */
-    public function update($index, $type, $id, $data, $routing = '', $docAsUpsert = false)
+    public function update($index, $id, $data, $routing = '', $docAsUpsert = true)
     {
-        if (empty($index) || empty($type) || empty($id) || empty($data)) {
+        if (empty($index) || empty($id) || empty($data)) {
             throw new ESORMException('in update , you must set index type id data');
         }
         $this->buildDsl();
         $params = array(
             'index' => $index,
-            'type'  => $type,
             'id'    => $id,
             'body'  => array('doc' => $data),
         );
-        if ($docAsUpsert) {
-            $params['body']['doc_as_upsert'] = true;
+        if (!$docAsUpsert) {
+            $params['body']['doc_as_upsert'] = false;
         }
 
         if ($routing !== '') {
@@ -452,7 +448,6 @@ class Client extends DSLBuilder
      * 更新字段 部分更新, 如果不存在将会返回错误
      *
      * @param string $index   索引名
-     * @param string $type    type名
      * @param mixed  $id      文档id
      * @param array  $data    要新增的信息
      * @param string $routing routing
@@ -462,15 +457,14 @@ class Client extends DSLBuilder
      *
      * @throws ESORMException
      */
-    public function insert($index, $type, $id, $data, $routing = '')
+    public function insert($index, $id, $data, $routing = '')
     {
-        if (empty($index) || empty($type) || empty($id) || empty($data)) {
-            throw new ESORMException('in create , you must set index type id data');
+        if (empty($index) || empty($id) || empty($data)) {
+            throw new ESORMException('in create , you must set index id data');
         }
         $this->buildDsl();
         $params = array(
             'index' => $index,
-            'type'  => $type,
             'id'    => $id,
             'body'  => $data,
         );
@@ -485,7 +479,6 @@ class Client extends DSLBuilder
      * 删除一条数据, es的删除数据即使数据不存在 返回依然是执行成功的
      *
      * @param string $index index name
-     * @param string $type  type name
      * @param mixed  $id    id you want delete
      *
      * @return Format
@@ -493,15 +486,14 @@ class Client extends DSLBuilder
      *
      * @throws ESORMException
      */
-    public function delete($index, $type, $id)
+    public function delete($index, $id)
     {
-        if (empty($index) || empty($type) || empty($id)) {
-            throw new ESORMException('in delete , you must set index type id');
+        if (empty($index) || empty($id)) {
+            throw new ESORMException('in delete , you must set index id');
         }
         $this->buildDsl();
         $params = array(
             'index' => $index,
-            'type'  => $type,
             'id'    => $id,
         );
 

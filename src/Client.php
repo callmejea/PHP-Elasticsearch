@@ -433,8 +433,8 @@ class Client extends DSLBuilder
             'id'    => $id,
             'body'  => array('doc' => $data),
         );
-        if (!$docAsUpsert) {
-            $params['body']['doc_as_upsert'] = false;
+        if ($docAsUpsert) {
+            $params['body']['doc_as_upsert'] = true;
         }
 
         if ($routing !== '') {

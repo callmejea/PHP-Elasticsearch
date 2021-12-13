@@ -212,12 +212,8 @@ class DSLBuilder extends ClientBuilder
         }
 
         if (!empty($this->params['aggregations'])) {
-            $a = $this->aggregations($this->params['aggregations']);
-            if (count($a) == 1) {
-                $this->conditions['body']['aggs'] = current($a);
-            } else {
-                $this->conditions['body']['aggs'] = $a;
-            }
+            $a                                = $this->aggregations($this->params['aggregations']);
+            $this->conditions['body']['aggs'] = $a;
         }
         // 是否需要中断
         if (array_key_exists('terminate_after', $this->params)) {
@@ -559,15 +555,14 @@ class DSLBuilder extends ClientBuilder
             if (!isset($p['field']) || !isset($p['order']) || !isset($p['sort']) || !isset($p['size']) || !isset($p['type'])) {
                 throw new \Exception('when you send needGroup ,you must send field,order,sort,size,type');
             }
-            $arr[] = $this->formatAggs($p);
+            $arr = $this->formatAggs($p, $arr);
         }
 
         return $arr;
     }
 
-    private function formatAggs($params)
+    private function formatAggs($params, $arr)
     {
-        $arr = [];
         switch ($params['type']) {
             case self::AGG_TYPE_SUM:
                 $arr['sum_' . $params['field']]['sum']['field'] = $params['field'];

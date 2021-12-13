@@ -10,14 +10,15 @@ function testSum()
 {
     $c  = [
         'hosts'   => [
-            'http://host:9200',
+            'http://192.168.8.211:9200',
         ],
         'retries' => 1,
     ];
     $es = new Client();
     $es->setHost($c);
-    $res = $es->from('test')
-        ->sum('field')
+    $res = $es->from('xidi_stat')
+        ->sum('orderParent.orderAmount')
+        ->cardinality('orderParent.orderAmount')
         ->limit(0)
         ->debug()
         ->search();

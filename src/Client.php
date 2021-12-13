@@ -283,13 +283,66 @@ class Client extends DSLBuilder
      */
     public function groupBy($field, $order = '_count', $sort = 'ASC', $size = 10)
     {
-        $this->params['aggregations'] = array(
+        $this->params['aggregations'][] = array(
             'field' => $field,
             'order' => $order,
             'sort'  => $sort,
             'size'  => $size,
+            'type'  => parent::AGG_TYPE_AGGS,
         );
 
+        return $this;
+    }
+
+    /**
+     * 获取聚合后的总个数，去重的，
+     * https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html
+     * @param $field
+     * @return $this
+     */
+    public function cardinality($field)
+    {
+        $this->params['aggregations'][] = array(
+            'field' => $field,
+            'order' => '',
+            'sort'  => '',
+            'size'  => '',
+            'type'  => parent::AGG_TYPE_CARDINALITY,
+        );
+        return $this;
+    }
+
+    /**
+     * 聚合 加～
+     * @param $field
+     * @return $this
+     */
+    public function sum($field)
+    {
+        $this->params['aggregations'][] = array(
+            'field' => $field,
+            'order' => '',
+            'sort'  => '',
+            'size'  => '',
+            'type'  => parent::AGG_TYPE_SUM,
+        );
+        return $this;
+    }
+
+    /**
+     * 获取参与聚合的doc的数量
+     * @param $field
+     * @return $this
+     */
+    public function groupByCount($field)
+    {
+        $this->params['aggregations'][] = array(
+            'field' => $field,
+            'order' => '',
+            'sort'  => '',
+            'size'  => '',
+            'type'  => parent::AGG_TYPE_COUNT,
+        );
         return $this;
     }
 

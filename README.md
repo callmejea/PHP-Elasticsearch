@@ -12,7 +12,7 @@ search 直接走了multi_match;
         搜索类型: 
             phrase: 短语匹配, 
             phrase_prefix: 前缀匹配
-aggregations  聚合目前尚不支持嵌套聚合, 只支持单一的聚合
+aggregations  聚合目前尚不支持嵌套聚合, 支持了多聚合
 ```
 
 ### 不支持的API
@@ -60,6 +60,23 @@ $res = $es
     ->getFormat();
 ```
 
+### 聚合
+
+- 现在聚合支持多聚合了～
+- 嵌套聚合仍然不被支持
+
+```php
+$res = $es
+    ->select(array('field', 'field2'))
+    ->from('index')
+    ->groupBy('field') // 普通聚合 返回值中将自动拼接上 agg_字段名 
+    ->groupByCount(field) // 获取参与聚合的文档数量 自动拼接 count_字段名
+    ->cardinality('field') // 获取不重复的符合条件的总数 自动拼接 cardinality_字段名
+    ->sum('field') // 获取sum
+    ->search()
+    ->getFormat();
+```
+
 ### 单例模式中不使用连接池
 
 ```php
@@ -96,4 +113,22 @@ class classNmae extends Client{
         use Hyperf\Utils\ApplicationContext;
         $client = ApplicationContext::getContainer()->get(Client::class);
         $info = $client->info();
+```
+
+### 不使用hyperf
+
+```php
+    $c  = [
+        'hosts'   => [
+            'http://192.168.8.211:9200',
+        ],
+        'retries' => 1,
+    ];
+    
+    $es = new Client();
+    $es->setHost($c);
+    $res = $es->from('test')
+        ->sum('field')
+        ->debug()
+        ->search();
 ```

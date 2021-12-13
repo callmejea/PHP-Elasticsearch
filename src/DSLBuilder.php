@@ -155,6 +155,14 @@ class DSLBuilder extends ClientBuilder
      * 出现在越多的字段越高评分
      */
     const MATCH_TYPE_MOST_FIELDS = 'most_fields';
+    // 聚合返回值类型，返回正常聚合后的数据
+    const AGG_TYPE_AGGS = 1;
+    // 聚合返回值类型：只返回参与聚合的文档数量
+    const AGG_TYPE_COUNT = 2;
+    // 聚合返回值类型：只返回聚合后的总count
+    const AGG_TYPE_CARDINALITY = 3;
+    // 聚合 sum
+    const AGG_TYPE_SUM = 4;
 
     public static $clientConfig;
     /**
@@ -204,7 +212,12 @@ class DSLBuilder extends ClientBuilder
         }
 
         if (!empty($this->params['aggregations'])) {
-            $this->conditions['body']['aggs'] = $this->aggregations($this->params['aggregations']);
+            $a = $this->aggregations($this->params['aggregations']);
+            if (count($a) == 1) {
+                $this->conditions['body']['aggs'] = current($a);
+            } else {
+                $this->conditions['body']['aggs'] = $a;
+            }
         }
         // 是否需要中断
         if (array_key_exists('terminate_after', $this->params)) {
@@ -541,22 +554,38 @@ class DSLBuilder extends ClientBuilder
      */
     private function aggregations($params)
     {
-
         $arr = array();
-        if (
-            !isset($params['field'])
-            || !isset($params['order'])
-            || !isset($params['sort'])
-            || !isset($params['size'])
-        ) {
-            throw new \Exception('when you send needGroup ,you must send field,order,sort,size');
+        foreach ($params as $p) {
+            if (!isset($p['field']) || !isset($p['order']) || !isset($p['sort']) || !isset($p['size']) || !isset($p['type'])) {
+                throw new \Exception('when you send needGroup ,you must send field,order,sort,size,type');
+            }
+            $arr[] = $this->formatAggs($p);
         }
-        $arr[$params['field']]['terms'] = array(
-            'field' => $params['field'],
-            'order' => array($params['order'] => $params['sort']),
-            'size'  => $params['size'],
-        );
 
+        return $arr;
+    }
+
+    private function formatAggs($params)
+    {
+        $arr = [];
+        switch ($params['type']) {
+            case self::AGG_TYPE_SUM:
+                $arr['sum_' . $params['field']]['sum']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_CARDINALITY:
+                $arr['cardinality_' . $params['field']]['cardinality']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_COUNT:
+                $arr['count_' . $params['field']]['value_count']['field'] = $params['field'];
+                break;
+            default:
+                $arr['agg_' . $params['field']]['terms'] = array(
+                    'field' => $params['field'],
+                    'order' => array($params['order'] => $params['sort']),
+                    'size'  => $params['size'],
+                );
+                break;
+        }
         return $arr;
     }
 

@@ -644,7 +644,30 @@ class Client extends DSLBuilder
      */
     private function output($res)
     {
-        return new Format($res, $this->debug, $this->params, $this->conditions);
+        $format = new Format($res, $this->debug, $this->params, $this->conditions);
+        $this->clean();
+        return $format;
+    }
+
+    /**
+     * 增加清除参数，防止初始化后连续调用错误
+     */
+    private function clean()
+    {
+        $this->client     = null;
+        $this->params     = array(
+            'match'        => array(),
+            'filters'      => array(),
+            'aggregations' => array(),
+        );
+        $this->conditions = array();
+        $this->sort       = array();
+        $this->keyArray   = array(
+            'params' => array(
+                'must'   => array(),
+                'should' => array(),
+            ),
+        );
     }
 
     /**

@@ -19,9 +19,19 @@ use Swoole\Coroutine;
 
 class ClientFactory
 {
-    public function __invoke(ContainerInterface $container)
+    /**
+     * @var ContainerInterface
+     */
+    private $container;
+
+    public function __construct(ContainerInterface $container)
     {
-        $config = $container->get(ConfigInterface::class)->get('elasticsearch');
+        $this->container = $container;
+    }
+
+    public function create()
+    {
+        $config = $this->container->get(ConfigInterface::class)->get('elasticsearch');
 
         $clientConfig = $config['client'];
 

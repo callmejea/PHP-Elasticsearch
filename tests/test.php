@@ -4,19 +4,68 @@ use PhpES\EsClient\Client;
 
 include '../vendor/autoload.php';
 
-testSum();
+$config = [
+    'hosts'   => [
+        'http://host:port',
+    ],
+    'retries' => 1,
+];
 
+getDateHistogram();
+
+/**
+ * 普通聚合根据子聚合的value排序
+ * @throws Exception
+ */
+function groupBySum()
+{
+    global $config;
+    $es = new Client();
+    $es->setHost($config);
+    $child = [
+        'field' => 'orderAmount',
+        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+    ];
+    $res   = $es->from('test')
+        ->where('platform', '=', 2)
+        ->groupBy('userId', 'selfChild', 'DESC', 20, $child)
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+}
+
+/**
+ * 获取日期聚合，可以不要子查询，如果有child那么会根据子查询的sum来进行聚合
+ * @throws Exception
+ */
+function getDateHistogram()
+{
+    global $config;
+    $es = new Client();
+    $es->setHost($config);
+    $child = [
+        'field' => 'orderAmount',
+        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+    ];
+    $res   = $es->from('test')
+        ->dateHistogram('createTime', '1s', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_FIXED, $child)
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+}
+
+/**
+ * sum聚合
+ * @throws Exception
+ */
 function testSum()
 {
-    $c  = [
-        'hosts'   => [
-            'http://192.168.8.211:9200',
-        ],
-        'retries' => 1,
-    ];
+    global $config;
     $es = new Client();
-    $es->setHost($c);
-    $res = $es->from('xidi_stat')
+    $es->setHost($config);
+    $res = $es->from('test')
         ->sum('orderParent.orderAmount')
         ->cardinality('orderParent.orderAmount')
         ->limit(0)
@@ -27,10 +76,11 @@ function testSum()
 
 function testMatch()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.235', 9200);
+    $es->setHost($config);
     $res = $es
-        ->from('houses_1', 'house')
+        ->from('test')
         ->match('name', '农业', 'phrase', 'should')
         ->match('address', '金水', 'phrase', 'should')
         ->limit(10)
@@ -41,25 +91,25 @@ function testMatch()
 
 function getTop100()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('127.0.0.1', 9202);
+    $es->setHost($config);
     $res = $es
-        ->from('statistics-2017-03,statistics-2017-04,statistics-2017-05,statistics-2017-06', '')
+        ->from('test')
         ->limit(0)
         ->groupBy('community_id', '_count', 'desc', 100)
         ->getJsonDsl();
-    print_r($res);
-    die;
     $res = $res->getFormat();
     var_export($res['aggregations']['community_id']['buckets']);
 }
 
 function testGeo()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.235', 9200);
+    $es->setHost($config);
     $res = $es
-        ->from('houses_1', 'house')
+        ->from('test')
         ->where('city_id', '=', '4101')
         ->where('house_deleted', '=', 0)
         ->where('community_deleted', '=', 0)
@@ -73,10 +123,11 @@ function testGeo()
 
 function testNear()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.235', 9200);
+    $es->setHost($config);
     $res = $es
-        ->from('rent_1', 'rent')
+        ->from('test')
         ->where('city_id', '=', '4101')
         ->where('district_id', '=', '14')
         ->where('rent_status', '=', 0)
@@ -93,11 +144,12 @@ function testNear()
 
 function testRent()
 {
+    global $config;
+    $es = new Client();
+    $es->setHost($config);
     $script = "tmScore = _score;if(doc['cover'].value != null){tmScore = tmScore+10;}; return tmScore + doc['create_time'];";
-    $es     = new Client();
-    $es->setHost('10.0.0.235', 9200);
-    $res = $es
-        ->from('rent_1', 'rent')
+    $res    = $es
+        ->from('test')
         ->where('city_id', '=', '4101')
         ->where('district_id', '=', '14')
         ->where('price', 'between', array(2000, 2500))
@@ -120,10 +172,11 @@ function testRent()
 
 function testWebHouse()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.235', 9200);
+    $es->setHost($config);
     $res = $es
-        ->from('houses_1', 'house')
+        ->from('test')
         ->where('city_id', '=', '4101')
         ->where('district_id', '=', '14')
         ->where('price', 'between', array(80, 100))
@@ -148,12 +201,13 @@ function testWebHouse()
 
 function testAggs()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.235', 9200);
+    $es->setHost($config);
 
     $res = $es
         ->select(array('community_id', 'name', 'address'))
-        ->from('community_1', 'community')
+        ->from('test')
         ->where('soft_deleted', '=', '0')
         ->match(array('name'), array('农业'))
         ->orderBy('community_id', 'desc')
@@ -165,10 +219,11 @@ function testAggs()
 
 function testErp()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.237', 9200);
+    $es->setHost($config);
     $res = $es
-        ->from('erp-follow-house-2017-05-31', 'n4101')
+        ->from('test')
         ->where('house_id', '=', '594243b87f8b9a3a08d2b1a5')
         ->where('system', '!=', TRUE)
         ->where('types', '!=', 1015)
@@ -208,11 +263,11 @@ function testErp()
 function testDelete()
 {
     $index = 'test';
-    $type  = 't';
     $id    = 3;
 
+    global $config;
     $es  = new Client();
-    $res = $es->setHost('10.0.0.235', 9200)->delete($index, $type, $id)->getArray();
+    $res = $es->setHost($config)->delete($index, $id)->getArray();
     print_r($res);
 }
 
@@ -235,14 +290,14 @@ function testDelete()
 function testUpdate()
 {
     $index = 'test';
-    $type  = 't';
     $id    = 1;
     $data  = array(
         'name' => '测试的1更改2',
     );
 
+    global $config;
     $es  = new Client();
-    $res = $es->setHost('10.0.0.235', 9200)->update($index, $type, $id, $data)->getArray();
+    $res = $es->setHost($config)->update($index, $id, $data)->getArray();
     print_r($res);
 }
 
@@ -308,19 +363,21 @@ function testInsert()
         'state' => 31,
     );
 
+
+    global $config;
     $es  = new Client();
-    $res = $es->setHost('10.0.0.235', 9200)->insert($index, $type, $id, $data)->getArray();
+    $res = $es->setHost($config)->insert($index, $id, $data)->getArray();
     print_r($res);
 }
 
 function testMultiFilter()
 {
+    global $config;
     $es = new Client();
-    $es->setHost('10.0.0.235', 9200);
-
+    $es->setHost($config);
     $res = $es
         // ->select(array('house_id', 'community_id', 'house_deleted', 'user_id', 'geo_point_gaode'))
-        ->from('houses_1', 'house')
+        ->from('test')
         ->where('house_deleted', '=', '0')
         ->where('community_deleted', '=', '0')
         ->whereGeo('geo_point_gaode', '34.723324', '113.713878', 1, 1, 'm')

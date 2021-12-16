@@ -276,12 +276,12 @@ class Client extends DSLBuilder
      *
      * @param string  $field 被聚合的字段
      * @param string  $order 聚合后的排序字段
-     * @param string  $sort  聚合后的字段排序方式 _count _term
+     * @param string  $sort  聚合后的字段排序方式 _count _term  提供第三种： selfChild 根据子聚合的value来排序，详细见test：groupBySum
      * @param integer $size  聚合结果集长度
      *
      * @return $this
      */
-    public function groupBy($field, $order = '_count', $sort = 'ASC', $size = 10)
+    public function groupBy($field, $order = '_count', $sort = 'ASC', $size = 10, $child = [])
     {
         $this->params['aggregations'][] = array(
             'field' => $field,
@@ -289,6 +289,7 @@ class Client extends DSLBuilder
             'sort'  => $sort,
             'size'  => $size,
             'type'  => parent::AGG_TYPE_AGGS,
+            'child' => $child,
         );
 
         return $this;
@@ -300,14 +301,12 @@ class Client extends DSLBuilder
      * @param $field
      * @return $this
      */
-    public function cardinality($field)
+    public function cardinality($field, $child = [])
     {
         $this->params['aggregations'][] = array(
             'field' => $field,
-            'order' => '',
-            'sort'  => '',
-            'size'  => '',
             'type'  => parent::AGG_TYPE_CARDINALITY,
+            'child' => $child,
         );
         return $this;
     }
@@ -317,14 +316,29 @@ class Client extends DSLBuilder
      * @param $field
      * @return $this
      */
-    public function sum($field)
+    public function sum($field, $child = [])
     {
         $this->params['aggregations'][] = array(
             'field' => $field,
-            'order' => '',
-            'sort'  => '',
-            'size'  => '',
             'type'  => parent::AGG_TYPE_SUM,
+            'child' => $child,
+        );
+        return $this;
+    }
+
+    /**
+     * 按日期聚合
+     * @param $field
+     * @param $interval
+     */
+    public function dateHistogram($field, $interval, $intervalType, $child = [])
+    {
+        $this->params['aggregations'][] = array(
+            'field'        => $field,
+            'intervalType' => $intervalType,
+            'interval'     => $interval,
+            'type'         => parent::AGG_TYPE_HISTOGRAM,
+            'child'        => $child,
         );
         return $this;
     }
@@ -334,14 +348,11 @@ class Client extends DSLBuilder
      * @param $field
      * @return $this
      */
-    public function groupByCount($field)
+    public function groupByCountValue($field)
     {
         $this->params['aggregations'][] = array(
             'field' => $field,
-            'order' => '',
-            'sort'  => '',
-            'size'  => '',
-            'type'  => parent::AGG_TYPE_COUNT,
+            'type'  => parent::AGG_TYPE_COUNT_VALUE,
         );
         return $this;
     }

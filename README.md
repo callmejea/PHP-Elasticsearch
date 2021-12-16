@@ -4,6 +4,10 @@
 由于php版本es操作依赖httpAPI来操作数据, 并且官方的API需要仔细研读方可使用,  这里出现了二封版本的MySQL 操作类
 ```
 
+### 详细使用方法见
+
+- tests/test.php
+
 ### 支持的API
 
 ```
@@ -12,7 +16,7 @@ search 直接走了multi_match;
         搜索类型: 
             phrase: 短语匹配, 
             phrase_prefix: 前缀匹配
-aggregations  聚合目前尚不支持嵌套聚合, 支持了多聚合
+aggregations  聚合支持嵌套聚合, 支持多聚合
 ```
 
 ### 不支持的API
@@ -63,7 +67,7 @@ $res = $es
 ### 聚合
 
 - 现在聚合支持多聚合了～
-- 嵌套聚合仍然不被支持
+- 嵌套被支持了~
 
 ```php
 $res = $es
@@ -111,16 +115,24 @@ class classNmae extends Client{
     <?php
         use PhpES\EsClient\Client;
         use Hyperf\Utils\ApplicationContext;
-        $client = ApplicationContext::getContainer()->get(Client::class);
-        $info = $client->info();
+        $client = ApplicationContext::getContainer()->get(ClientFactory::class)->create();
+        $info = $client->someFunction();
 ```
 
 ### 不使用hyperf
 
+- 检出此项目，在compose.json中将第四行替换为：
+
+ ```text
+elasticsearch/elasticsearch:7.15.0, 或你对应的版本
+```
+
+- 然后如下使用
+
 ```php
     $c  = [
         'hosts'   => [
-            'http://192.168.8.211:9200',
+            'http://host:port',
         ],
         'retries' => 1,
     ];

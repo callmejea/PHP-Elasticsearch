@@ -15,6 +15,8 @@ use Elasticsearch\ClientBuilder;
  */
 class DSLBuilder extends ClientBuilder
 {
+
+    public $timeZone = 'Asia/Shanghai';
     /**
      * 等于
      */
@@ -136,6 +138,11 @@ class DSLBuilder extends ClientBuilder
     const SORT_DIRECTION_DESC = 'desc';
 
     /**
+     * 对于普通aggs使用子聚合的值来排序
+     */
+    const SORT_SELF_CHILD = 'selfChild';
+
+    /**
      * 搜索类型 短语匹配
      */
     const MATCH_TYPE_PHRASE = 'phrase';
@@ -158,11 +165,38 @@ class DSLBuilder extends ClientBuilder
     // 聚合返回值类型，返回正常聚合后的数据
     const AGG_TYPE_AGGS = 1;
     // 聚合返回值类型：只返回参与聚合的文档数量
-    const AGG_TYPE_COUNT = 2;
+    const AGG_TYPE_COUNT_VALUE = 2;
     // 聚合返回值类型：只返回聚合后的总count
     const AGG_TYPE_CARDINALITY = 3;
     // 聚合 sum
     const AGG_TYPE_SUM = 4;
+    /**
+     * 日期聚合
+     */
+    const AGG_TYPE_HISTOGRAM = 5;
+
+    /**
+     * 按标准时间格式分隔聚合
+     */
+    const AGG_HISTOGRAM_TYPE_CALENDAR = 'calendar_interval';
+    const AGG_HISTOGRAM_MINUTE        = 'minute';
+    const AGG_HISTOGRAM_HOUR          = 'hour';
+    const AGG_HISTOGRAM_DAY           = 'day';
+    const AGG_HISTOGRAM_WEEK          = 'week';
+    const AGG_HISTOGRAM_MONTH         = 'month';
+    const AGG_HISTOGRAM_QUARTER       = 'quarter';
+    const AGG_HISTOGRAM_YEAR          = 'year';
+
+    const SUB_AGG_PREFIX = 'sub_';
+    /**
+     * 按照自定义时间间隔聚合，格式为： 时间 + 单位，提供的单位如下：
+     * milliseconds (ms)
+     * seconds (s)
+     * minutes (m)
+     * hours (h)
+     * days (d)
+     */
+    const AGG_HISTOGRAM_TYPE_FIXED = 'fixed_interval';
 
     public static $clientConfig;
     /**
@@ -185,6 +219,16 @@ class DSLBuilder extends ClientBuilder
             'should' => array(),
         ),
     );
+    /**
+     * 计算后的聚合数据，在聚合走完之后使用
+     * @var array
+     */
+    private $aggregationRes = [];
+    // 以下两个参数用于拼接日期聚合相加时的情况
+    private $hasHistogram = false;
+    private $histogramKey = '';
+    private $hasSum = false;
+    private $sumKey = '';
 
     /**
      * 按照es的结构去组装数据源
@@ -212,8 +256,8 @@ class DSLBuilder extends ClientBuilder
         }
 
         if (!empty($this->params['aggregations'])) {
-            $a                                = $this->aggregations($this->params['aggregations']);
-            $this->conditions['body']['aggs'] = $a;
+            $this->aggregations($this->params['aggregations']);
+            $this->conditions['body']['aggs'] = $this->aggregationRes;
         }
         // 是否需要中断
         if (array_key_exists('terminate_after', $this->params)) {
@@ -530,8 +574,7 @@ class DSLBuilder extends ClientBuilder
                 $dsl['bool']['must'][] = $this->buildGeoBox($filter);
                 break;
             default:
-                throw new \Exception('error Filter! please use : between ,not_between ,> ,< ,= ,!= ,in ,not in; now the filter is '
-                    . json_encode($filter));
+                throw new \Exception('error Filter! please use : between ,not_between ,> ,< ,= ,!= ,in ,not in; now the filter is ' . json_encode($filter));
                 break;
         }
 
@@ -552,36 +595,141 @@ class DSLBuilder extends ClientBuilder
     {
         $arr = array();
         foreach ($params as $p) {
-            if (!isset($p['field']) || !isset($p['order']) || !isset($p['sort']) || !isset($p['size']) || !isset($p['type'])) {
-                throw new \Exception('when you send needGroup ,you must send field,order,sort,size,type');
-            }
-            $arr = $this->formatAggs($p, $arr);
+            $this->checkAggregationParams($p);
+            $this->formatAggs($p);
         }
-
+        // 判断是否有按日期分隔的， 如果有，组装dsl
+        if ($this->hasHistogram && $this->hasSum) {
+            $this->aggregationRes['sum_histogram'] = [
+                'sum_bucket' => [
+                    'buckets_path' => $this->histogramKey . '>' . $this->sumKey,
+                ],
+            ];
+        }
         return $arr;
     }
 
-    private function formatAggs($params, $arr)
+    /**
+     * 检查聚合条件
+     * @param array $params
+     * @throws \Exception
+     */
+    private function checkAggregationParams($params)
     {
         switch ($params['type']) {
             case self::AGG_TYPE_SUM:
-                $arr['sum_' . $params['field']]['sum']['field'] = $params['field'];
-                break;
             case self::AGG_TYPE_CARDINALITY:
-                $arr['cardinality_' . $params['field']]['cardinality']['field'] = $params['field'];
+            case self::AGG_TYPE_COUNT_VALUE:
+                if (!isset($params['field'])) {
+                    throw new \Exception('Aggregation sum,cardinality,value_count must set field');
+                }
                 break;
-            case self::AGG_TYPE_COUNT:
-                $arr['count_' . $params['field']]['value_count']['field'] = $params['field'];
+            case self::AGG_TYPE_HISTOGRAM:
+                if (!isset($params['field']) || !isset($params['interval']) || !isset($params['intervalType'])) {
+                    throw new \Exception('Aggregation histogram must set field,intervalType,interval');
+                }
+                break;
+            case self::AGG_TYPE_AGGS:
+                if (!isset($params['field']) || !isset($params['order']) || !isset($params['sort']) || !isset($params['size']) || !isset($params['type'])) {
+                    throw new \Exception('when you send needGroup ,you must send field,order,sort,size,type');
+                }
+                if ($params['order'] == self::SORT_SELF_CHILD && (!isset($params['child']) || empty($params['child']))) {
+                    throw  new \Exception('When using group by child aggs result must set child agg');
+                }
                 break;
             default:
-                $arr['agg_' . $params['field']]['terms'] = array(
+                throw new \Exception('Unknown aggregation type');
+                break;
+        }
+    }
+
+    /**
+     * 组装聚合查询
+     * @param        $params
+     */
+    private function formatAggs($params)
+    {
+        $fk = str_replace('.', '_', $params['field']);
+        switch ($params['type']) {
+            case self::AGG_TYPE_SUM:
+                $key                                                 = 'sum_' . $fk;
+                $this->hasSum                                        = true;
+                $this->sumKey                                        = $key;
+                $this->aggregationRes[$this->sumKey]['sum']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_CARDINALITY:
+                $key                                                = 'cardinality_' . $fk;
+                $this->aggregationRes[$key]['cardinality']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_COUNT_VALUE:
+                $key                                                = 'count_' . $fk;
+                $this->aggregationRes[$key]['value_count']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_HISTOGRAM:
+                $key                                          = 'histogram_' . $fk;
+                $this->hasHistogram                           = true;
+                $this->histogramKey                           = $key;
+                $this->aggregationRes[$key]['date_histogram'] = [
+                    'field'                 => $params['field'],
+                    $params['intervalType'] => $params['interval'],
+                    'time_zone'             => $this->timeZone,
+                ];
+                break;
+            default:
+                $key      = 'agg_' . $fk;
+                $orderKey = $params['order'];
+                if ($orderKey == self::SORT_SELF_CHILD) {
+                    $childKey = str_replace('.', '_', $params['child']['field']);
+                    $orderKey = self::SUB_AGG_PREFIX . $this->getAggTypeEn($params['child']['type']) . '_' . $childKey;
+                }
+                $this->aggregationRes[$key]['terms'] = array(
+                    'field' => $params['field'],
+                    'order' => array($orderKey => $params['sort']),
+                    'size'  => $params['size'],
+                );
+                break;
+        }
+        if (isset($params['child']) && !empty($params['child'])) {
+            $this->checkAggregationParams($params['child']);
+            $this->formatSubAggs($params['child'], $key);
+        }
+    }
+
+    /**
+     * 组装聚合子查询,复制了一遍，防止使用者写错多嵌套
+     * @param        $params
+     */
+    private function formatSubAggs($params, $parent)
+    {
+        $fk = str_replace('.', '_', $params['field']);
+        switch ($params['type']) {
+            case self::AGG_TYPE_SUM:
+                $this->hasSum                                                         = true;
+                $this->sumKey                                                         = self::SUB_AGG_PREFIX . 'sum_' . $fk;
+                $this->aggregationRes[$parent]['aggs'][$this->sumKey]['sum']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_CARDINALITY:
+                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'cardinality_' . $fk]['cardinality']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_COUNT_VALUE:
+                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'count_' . $fk]['value_count']['field'] = $params['field'];
+                break;
+            case self::AGG_TYPE_HISTOGRAM:
+                $this->hasHistogram                                                           = true;
+                $this->histogramKey                                                           = self::SUB_AGG_PREFIX . 'histogram_' . $fk;
+                $this->aggregationRes[$parent]['aggs'][$this->histogramKey]['date_histogram'] = [
+                    'field'                 => $params['field'],
+                    $params['intervalType'] => $params['interval'],
+                ];
+                break;
+            default:
+                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'agg_' . $fk]['terms'] = array(
                     'field' => $params['field'],
                     'order' => array($params['order'] => $params['sort']),
                     'size'  => $params['size'],
                 );
                 break;
         }
-        return $arr;
     }
 
     /**
@@ -669,6 +817,18 @@ class DSLBuilder extends ClientBuilder
         }
 
         return $dsl;
+    }
+
+    private function getAggTypeEn($type)
+    {
+        $en = [
+            self::AGG_TYPE_AGGS        => 'aggs',
+            self::AGG_TYPE_COUNT_VALUE => 'count',
+            self::AGG_TYPE_CARDINALITY => 'cardinality',
+            self::AGG_TYPE_SUM         => 'sum',
+            self::AGG_TYPE_HISTOGRAM   => 'histogram',
+        ];
+        return $en[$type];
     }
 
 }

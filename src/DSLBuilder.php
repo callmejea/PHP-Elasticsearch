@@ -225,6 +225,9 @@ class DSLBuilder extends ClientBuilder
      */
     private $aggregationRes = [];
 
+    protected $isNested = false;
+    protected $nestedPath = '';
+
     /**
      * 按照es的结构去组装数据源
      * 首先会过滤一遍数据, 按照keyArray来分割好条件
@@ -237,6 +240,16 @@ class DSLBuilder extends ClientBuilder
         if ($this->client == null) {
             $this->client = $this->fromConfig(self::$clientConfig);
         }
+        if ($this->isNested) {
+            $this->compileNested();
+        } else {
+            $this->compileNormal();
+        }
+        return $this->conditions;
+    }
+
+    protected function compileNormal()
+    {
         $queryType = self::QUERY_TYPE_BOOL;
         if (!empty($this->params['filters'])) {
             //这里处理层级 将开始和结束对应起来
@@ -259,8 +272,45 @@ class DSLBuilder extends ClientBuilder
             $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
         }
 
-        return $this->conditions;
     }
+
+    protected function compileNested()
+    {
+        $queryType = self::QUERY_TYPE_BOOL;
+        if (!empty($this->params['filters'])) {
+            //这里处理层级 将开始和结束对应起来
+            $this->getMultiKeys($this->params['filters']);
+            //开始拼装查询条件
+            $this->conditions['body']['query']['nested'] = [
+                'path'  => $this->nestedPath,
+                'query' => [
+                    $queryType => [
+                        'filter' => $this->buildFilter($this->params['filters']),
+                    ]
+                ]
+            ];
+        }
+
+        //组装排序参数
+        if (!empty($this->sort)) {
+            $this->conditions['body']['sort'] = $this->buildSort($this->sort);
+        }
+
+        if (!empty($this->params['aggregations'])) {
+            $this->aggregations($this->params['aggregations']);
+            $this->conditions['body']['aggs'][$this->nestedPath] = [
+                'nested' => [
+                    'path' => $this->nestedPath,
+                ],
+                'aggs'   => $this->aggregationRes,
+            ];
+        }
+        // 是否需要中断
+        if (array_key_exists('terminate_after', $this->params)) {
+            $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
+        }
+    }
+
 
     /**
      * 循环参数结构, 开始遍历

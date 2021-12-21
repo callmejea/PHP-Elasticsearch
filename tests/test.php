@@ -6,12 +6,33 @@ include '../vendor/autoload.php';
 
 $config = [
     'hosts'   => [
-        'http://host:port',
+        'http://host:9200',
     ],
     'retries' => 1,
 ];
 
-getDateHistogram();
+nestedAgg();
+
+function nestedAgg()
+{
+    global $config;
+    $es = new Client();
+    $es->setHost($config);
+    $child = [
+        'field' => 'sum',
+        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+    ];
+    $res   = $es->from('test')
+        ->setNested('filed')
+        ->where('field.childField', '=', 0)
+        ->dateHistogram('field.time', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+    die;
+}
+
 
 /**
  * 普通聚合根据子聚合的value排序
@@ -44,11 +65,25 @@ function getDateHistogram()
     global $config;
     $es = new Client();
     $es->setHost($config);
+    // 单个
     $child = [
         'field' => 'orderAmount',
         'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
     ];
-    $res   = $es->from('test')
+
+    // 如果是多个sum
+    $child = [
+        [
+            'field' => 'orderAmount',
+            'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+        ],
+        [
+            'field' => 'orderAmount',
+            'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+        ]
+    ];
+
+    $res = $es->from('test')
         ->dateHistogram('createTime', '1s', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_FIXED, $child)
         ->limit(0)
         ->debug()

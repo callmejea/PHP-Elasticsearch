@@ -73,6 +73,17 @@ class Client extends DSLBuilder
     }
 
     /**
+     * 设置为使用nested嵌套查询
+     * @return $this
+     */
+    public function setNested($path)
+    {
+        $this->isNested   = true;
+        $this->nestedPath = $path;
+        return $this;
+    }
+
+    /**
      * 设置当前es的查询index
      *
      * @param string $index index name

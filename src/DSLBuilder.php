@@ -224,11 +224,6 @@ class DSLBuilder extends ClientBuilder
      * @var array
      */
     private $aggregationRes = [];
-    // 以下两个参数用于拼接日期聚合相加时的情况
-    private $hasHistogram = false;
-    private $histogramKey = '';
-    private $hasSum = false;
-    private $sumKey = '';
 
     /**
      * 按照es的结构去组装数据源
@@ -599,13 +594,13 @@ class DSLBuilder extends ClientBuilder
             $this->formatAggs($p);
         }
         // 判断是否有按日期分隔的， 如果有，组装dsl
-        if ($this->hasHistogram && $this->hasSum) {
-            $this->aggregationRes['sum_histogram'] = [
-                'sum_bucket' => [
-                    'buckets_path' => $this->histogramKey . '>' . $this->sumKey,
-                ],
-            ];
-        }
+        /* if ($this->hasHistogram && $this->hasSum) {
+             $this->aggregationRes['sum_histogram'] = [
+                 'sum_bucket' => [
+                     'buckets_path' => $this->histogramKey . '>' . $this->sumKey,
+                 ],
+             ];
+         }*/
         return $arr;
     }
 
@@ -652,10 +647,8 @@ class DSLBuilder extends ClientBuilder
         $fk = str_replace('.', '_', $params['field']);
         switch ($params['type']) {
             case self::AGG_TYPE_SUM:
-                $key                                                 = 'sum_' . $fk;
-                $this->hasSum                                        = true;
-                $this->sumKey                                        = $key;
-                $this->aggregationRes[$this->sumKey]['sum']['field'] = $params['field'];
+                $key                                        = 'sum_' . $fk;
+                $this->aggregationRes[$key]['sum']['field'] = $params['field'];
                 break;
             case self::AGG_TYPE_CARDINALITY:
                 $key                                                = 'cardinality_' . $fk;
@@ -667,8 +660,6 @@ class DSLBuilder extends ClientBuilder
                 break;
             case self::AGG_TYPE_HISTOGRAM:
                 $key                                          = 'histogram_' . $fk;
-                $this->hasHistogram                           = true;
-                $this->histogramKey                           = $key;
                 $this->aggregationRes[$key]['date_histogram'] = [
                     'field'                 => $params['field'],
                     $params['intervalType'] => $params['interval'],
@@ -690,8 +681,15 @@ class DSLBuilder extends ClientBuilder
                 break;
         }
         if (isset($params['child']) && !empty($params['child'])) {
-            $this->checkAggregationParams($params['child']);
-            $this->formatSubAggs($params['child'], $key);
+            if (count($params['child']) > 1 && isset($params['child'][0])) {
+                foreach ($params['child'] as $child) {
+                    $this->checkAggregationParams($child);
+                    $this->formatSubAggs($child, $key);
+                }
+            } else {
+                $this->checkAggregationParams($params['child']);
+                $this->formatSubAggs($params['child'], $key);
+            }
         }
     }
 
@@ -704,9 +702,7 @@ class DSLBuilder extends ClientBuilder
         $fk = str_replace('.', '_', $params['field']);
         switch ($params['type']) {
             case self::AGG_TYPE_SUM:
-                $this->hasSum                                                         = true;
-                $this->sumKey                                                         = self::SUB_AGG_PREFIX . 'sum_' . $fk;
-                $this->aggregationRes[$parent]['aggs'][$this->sumKey]['sum']['field'] = $params['field'];
+                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'sum_' . $fk]['sum']['field'] = $params['field'];
                 break;
             case self::AGG_TYPE_CARDINALITY:
                 $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'cardinality_' . $fk]['cardinality']['field'] = $params['field'];
@@ -715,9 +711,7 @@ class DSLBuilder extends ClientBuilder
                 $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'count_' . $fk]['value_count']['field'] = $params['field'];
                 break;
             case self::AGG_TYPE_HISTOGRAM:
-                $this->hasHistogram                                                           = true;
-                $this->histogramKey                                                           = self::SUB_AGG_PREFIX . 'histogram_' . $fk;
-                $this->aggregationRes[$parent]['aggs'][$this->histogramKey]['date_histogram'] = [
+                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'histogram_' . $fk]['date_histogram'] = [
                     'field'                 => $params['field'],
                     $params['intervalType'] => $params['interval'],
                 ];

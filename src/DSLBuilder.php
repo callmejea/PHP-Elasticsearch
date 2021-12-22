@@ -207,7 +207,10 @@ class DSLBuilder extends ClientBuilder
     protected $params = array(
         'match'        => array(), //match must have Type : allow: match_prefix phrase multi_match
         'filters'      => array(),
-        'aggregations' => array(),
+        'aggregations' => array(
+            'nested' => array(),
+            'normal' => array(),
+        ),
     );
     protected $conditions = array(); //组合后的查询语句放在这里
 
@@ -226,7 +229,9 @@ class DSLBuilder extends ClientBuilder
     private $aggregationRes = [];
 
     protected $isNested = false;
+    protected $nestedBegin = false;
     protected $nestedPath = '';
+    protected $nestedCondition = [];
 
     /**
      * 按照es的结构去组装数据源
@@ -240,14 +245,27 @@ class DSLBuilder extends ClientBuilder
         if ($this->client == null) {
             $this->client = $this->fromConfig(self::$clientConfig);
         }
-        if ($this->isNested) {
+        $this->compileNormal();
+
+        if ($this->nestedCondition) {
             $this->compileNested();
-        } else {
-            $this->compileNormal();
+        }
+        //组装排序参数
+        if (!empty($this->sort)) {
+            $this->conditions['body']['sort'] = $this->buildSort($this->sort);
+        }
+
+        // 是否需要中断
+        if (array_key_exists('terminate_after', $this->params)) {
+            $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
         }
         return $this->conditions;
     }
 
+    /**
+     * 拼接普通查询
+     * @throws \Exception
+     */
     protected function compileNormal()
     {
         $queryType = self::QUERY_TYPE_BOOL;
@@ -255,60 +273,60 @@ class DSLBuilder extends ClientBuilder
             //这里处理层级 将开始和结束对应起来
             $this->getMultiKeys($this->params['filters']);
             //开始拼装查询条件
-            $this->conditions['body']['query'][$queryType]['filter'] = $this->buildFilter($this->params['filters']);
-        }
-
-        //组装排序参数
-        if (!empty($this->sort)) {
-            $this->conditions['body']['sort'] = $this->buildSort($this->sort);
-        }
-
-        if (!empty($this->params['aggregations'])) {
-            $this->aggregations($this->params['aggregations']);
-            $this->conditions['body']['aggs'] = $this->aggregationRes;
-        }
-        // 是否需要中断
-        if (array_key_exists('terminate_after', $this->params)) {
-            $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
-        }
-
-    }
-
-    protected function compileNested()
-    {
-        $queryType = self::QUERY_TYPE_BOOL;
-        if (!empty($this->params['filters'])) {
-            //这里处理层级 将开始和结束对应起来
-            $this->getMultiKeys($this->params['filters']);
-            //开始拼装查询条件
-            $this->conditions['body']['query']['nested'] = [
-                'path'  => $this->nestedPath,
-                'query' => [
-                    $queryType => [
-                        'filter' => $this->buildFilter($this->params['filters']),
-                    ]
+            $this->conditions['body']['query']['bool']['must'][] = [
+                $queryType => [
+                    'filter' => $this->buildFilter($this->params['filters'])
                 ]
             ];
         }
 
-        //组装排序参数
-        if (!empty($this->sort)) {
-            $this->conditions['body']['sort'] = $this->buildSort($this->sort);
+        if (!empty($this->params['aggregations']['normal'])) {
+            $this->aggregations($this->params['aggregations']['normal']);
+            $this->conditions['body']['aggs'] = $this->aggregationRes;
         }
+    }
 
-        if (!empty($this->params['aggregations'])) {
-            $this->aggregations($this->params['aggregations']);
+    /**
+     * 拼接嵌套文档查询
+     * 如果嵌套查询的filter和aggs同时存在，则自动放到aggs里进行筛选
+     * @throws \Exception
+     */
+    protected function compileNested()
+    {
+        $queryType = self::QUERY_TYPE_BOOL;
+        $aggs      = [];
+        if (!empty($this->params['aggregations']['nested'])) {
+            $this->aggregations($this->params['aggregations']['nested']);
             $this->conditions['body']['aggs'][$this->nestedPath] = [
                 'nested' => [
                     'path' => $this->nestedPath,
                 ],
-                'aggs'   => $this->aggregationRes,
             ];
+            $aggs                                                = $this->aggregationRes;
         }
-        // 是否需要中断
-        if (array_key_exists('terminate_after', $this->params)) {
-            $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
+        if (!empty($this->nestedCondition)) {
+            //这里处理层级 将开始和结束对应起来
+            $this->getMultiKeys($this->nestedCondition);
+            //开始拼装查询条件
+            $filter = $this->buildFilter($this->nestedCondition);
+            if ($aggs) {
+                $this->conditions['body']['aggs'][$this->nestedPath]['aggs']['filterCondition']['filter'] = $filter;
+                $this->conditions['body']['aggs'][$this->nestedPath]['aggs']['filterCondition']['aggs']   = $aggs;
+            } else {
+                $this->conditions['body']['query']['bool']['must'][] = [
+                    'nested' => [
+                        'path'  => $this->nestedPath,
+                        'query' => [
+                            $queryType => [
+                                'filter' => $filter,
+                            ]
+                        ]
+                    ]
+                ];
+            }
+
         }
+
     }
 
 
@@ -410,7 +428,6 @@ class DSLBuilder extends ClientBuilder
 
     /**
      * 获取嵌套查询的节点, 使begin和end一一对应
-     *
      * @param $filters
      */
     private function getMultiKeys(&$filters)

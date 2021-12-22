@@ -83,6 +83,18 @@ class Client extends DSLBuilder
         return $this;
     }
 
+    public function beginNested()
+    {
+        $this->nestedBegin = true;
+        return $this;
+    }
+
+    public function endNested()
+    {
+        $this->nestedBegin = false;
+        return $this;
+    }
+
     /**
      * 设置当前es的查询index
      *
@@ -106,7 +118,12 @@ class Client extends DSLBuilder
      */
     public function where($columns, $operate, $value)
     {
-        $this->params['filters'][] = array('field' => $columns, 'operate' => $operate, 'value' => $value, 'type' => 'must');
+        $p = array('field' => $columns, 'operate' => $operate, 'value' => $value, 'type' => 'must');
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+        } else {
+            $this->params['filters'][] = $p;
+        }
 
         return $this;
     }
@@ -132,13 +149,18 @@ class Client extends DSLBuilder
             throw new ESORMException('using match; keywords must be string; can not using array');
         }
         if (!empty($fields) && !empty($keywords)) {
-            $this->params['filters'][] = array(
+            $p = array(
                 'matchType' => $matchType,
                 'fields'    => $fields,
                 'keywords'  => $keywords,
                 'type'      => $type,
                 'operate'   => 'match',
             );
+            if ($this->nestedBegin) {
+                $this->nestedCondition[] = $p;
+            } else {
+                $this->params['filters'][] = $p;
+            }
         }
 
         return $this;
@@ -155,7 +177,12 @@ class Client extends DSLBuilder
      */
     public function orWhere($field, $operate, $value)
     {
-        $this->params['filters'][] = array('field' => $field, 'operate' => $operate, 'value' => $value, 'type' => 'should');
+        $p = array('field' => $field, 'operate' => $operate, 'value' => $value, 'type' => 'should');
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+        } else {
+            $this->params['filters'][] = $p;
+        }
 
         return $this;
     }
@@ -167,12 +194,18 @@ class Client extends DSLBuilder
      */
     public function andWhereBegin()
     {
-        $this->params['filters'][] = array('type' => 'andWhereBegin', 'operate' => '');
-        //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
-        $key = count($this->params['filters']) - 1;
+        $p = array('type' => 'andWhereBegin', 'operate' => '');
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+            //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
+            $key = count($this->nestedCondition) - 1;
+        } else {
+            $this->params['filters'][] = $p;
+            //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
+            $key = count($this->params['filters']) - 1;
+        }
         //定义当前查询条件的嵌套对应结束关系, 先暂定为0, end时会结束
         $this->multiKeys['must'][] = $key;
-
         return $this;
     }
 
@@ -182,9 +215,16 @@ class Client extends DSLBuilder
      */
     public function andWhereEnd()
     {
-        $this->params['filters'][] = array('type' => 'andWhereEnd', 'operate' => '');
-        //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
-        $key = count($this->params['filters']) - 1;
+        $p = array('type' => 'andWhereEnd', 'operate' => '');
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+            //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
+            $key = count($this->nestedCondition) - 1;
+        } else {
+            $this->params['filters'][] = $p;
+            //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
+            $key = count($this->params['filters']) - 1;
+        }
         //定义对应关系, 填补begin的0
         $this->keyArray['params']['must'][$this->getLastBeginKey('must')] = $key;
 
@@ -198,9 +238,15 @@ class Client extends DSLBuilder
      */
     public function orWhereBegin()
     {
-        $this->params['filters'][] = array('type' => 'orWhereBegin', 'operate' => '');
-        //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
-        $key = count($this->params['filters']) - 1;
+        $p = array('type' => 'orWhereBegin', 'operate' => '');
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+            $key                     = count($this->nestedCondition) - 1;
+        } else {
+            $this->params['filters'][] = $p;
+            //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
+            $key = count($this->params['filters']) - 1;
+        }
         //定义当前查询条件的嵌套对应结束关系, 先暂定为0, end时会结束
         $this->multiKeys['should'][] = $key;
 
@@ -213,9 +259,15 @@ class Client extends DSLBuilder
      */
     public function orWhereEnd()
     {
-        $this->params['filters'][] = array('type' => 'orWhereEnd', 'operate' => '');
-        //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
-        $key = count($this->params['filters']) - 1;
+        $p = array('type' => 'orWhereEnd', 'operate' => '');
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+            $key                     = count($this->nestedCondition) - 1;
+        } else {
+            $this->params['filters'][] = $p;
+            //记录当前嵌套查询开始的位置, 查询条件是自增的, 因此 -1 即可
+            $key = count($this->params['filters']) - 1;
+        }
         //定义对应关系, 填补begin的0
         $this->keyArray['params']['should'][$this->getLastBeginKey('should')] = $key;
 
@@ -238,7 +290,7 @@ class Client extends DSLBuilder
      */
     public function whereGeo($geoField, $lat, $lon, $distance, $minDistance = 0, $unit = 'm', $distanceType = 'sloppy_arc', $type = 'must')
     {
-        $this->params['filters'][] = array(
+        $p = array(
             'field'        => $geoField,
             'lat'          => $lat,
             'lon'          => $lon,
@@ -249,7 +301,11 @@ class Client extends DSLBuilder
             'operate'      => 'geo',
             'type'         => $type,
         );
-
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+        } else {
+            $this->params['filters'][] = $p;
+        }
         return $this;
     }
 
@@ -268,7 +324,7 @@ class Client extends DSLBuilder
      */
     public function whereGeoBox($geoField, $attr, $leftTopLat, $leftTopLon, $rightBottomLat, $rightBottomLon, $type = 'must')
     {
-        $this->params['filters'][] = array(
+        $p = array(
             'field'          => $geoField,
             'attr'           => $attr,
             'leftTopLat'     => $leftTopLat,
@@ -278,7 +334,11 @@ class Client extends DSLBuilder
             'operate'        => 'geoBox',
             'type'           => $type,
         );
-
+        if ($this->nestedBegin) {
+            $this->nestedCondition[] = $p;
+        } else {
+            $this->params['filters'][] = $p;
+        }
         return $this;
     }
 
@@ -294,7 +354,9 @@ class Client extends DSLBuilder
      */
     public function groupBy($field, $order = '_count', $sort = 'ASC', $size = 10, $child = [])
     {
-        $this->params['aggregations'][] = array(
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
             'field' => $field,
             'order' => $order,
             'sort'  => $sort,
@@ -314,7 +376,9 @@ class Client extends DSLBuilder
      */
     public function cardinality($field, $child = [])
     {
-        $this->params['aggregations'][] = array(
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
             'field' => $field,
             'type'  => parent::AGG_TYPE_CARDINALITY,
             'child' => $child,
@@ -329,7 +393,9 @@ class Client extends DSLBuilder
      */
     public function sum($field, $child = [])
     {
-        $this->params['aggregations'][] = array(
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
             'field' => $field,
             'type'  => parent::AGG_TYPE_SUM,
             'child' => $child,
@@ -344,7 +410,9 @@ class Client extends DSLBuilder
      */
     public function dateHistogram($field, $interval, $intervalType, $child = [])
     {
-        $this->params['aggregations'][] = array(
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
             'field'        => $field,
             'intervalType' => $intervalType,
             'interval'     => $interval,
@@ -361,7 +429,9 @@ class Client extends DSLBuilder
      */
     public function groupByCountValue($field)
     {
-        $this->params['aggregations'][] = array(
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
             'field' => $field,
             'type'  => parent::AGG_TYPE_COUNT_VALUE,
         );

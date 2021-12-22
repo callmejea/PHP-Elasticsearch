@@ -352,7 +352,7 @@ class Client extends DSLBuilder
      *
      * @return $this
      */
-    public function groupBy($field, $order = '_count', $sort = 'ASC', $size = 10, $child = [])
+    public function groupBy($field, $order = '_count', $sort = 'ASC', $from = 0, $size = 10, $child = [])
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
@@ -360,6 +360,7 @@ class Client extends DSLBuilder
             'field' => $field,
             'order' => $order,
             'sort'  => $sort,
+            'from'  => $from,
             'size'  => $size,
             'type'  => parent::AGG_TYPE_AGGS,
             'child' => $child,
@@ -369,7 +370,7 @@ class Client extends DSLBuilder
     }
 
     /**
-     * 获取聚合后的总个数，去重的，
+     * 获取聚合后的总个数，去重的，类似于： select count(*) from xxx group by bbb
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html
      * @param $field
      * @return $this
@@ -391,7 +392,7 @@ class Client extends DSLBuilder
      * @param $field
      * @return $this
      */
-    public function sum($field, $child = [])
+    public function sum($field, $order = '', $sort = 'ASC', $from = 0, $size = 10, $child = [])
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
@@ -399,6 +400,10 @@ class Client extends DSLBuilder
             'field' => $field,
             'type'  => parent::AGG_TYPE_SUM,
             'child' => $child,
+            'order' => $order,
+            'sort'  => $sort,
+            'from'  => $from,
+            'size'  => $size,
         );
         return $this;
     }
@@ -408,7 +413,7 @@ class Client extends DSLBuilder
      * @param $field
      * @param $interval
      */
-    public function dateHistogram($field, $interval, $intervalType, $child = [])
+    public function dateHistogram($field, $interval, $intervalType, $child = [], $pipeLine = true)
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
@@ -418,6 +423,7 @@ class Client extends DSLBuilder
             'interval'     => $interval,
             'type'         => parent::AGG_TYPE_HISTOGRAM,
             'child'        => $child,
+            'pipeLine'     => $pipeLine,
         );
         return $this;
     }
@@ -427,13 +433,17 @@ class Client extends DSLBuilder
      * @param $field
      * @return $this
      */
-    public function groupByCountValue($field)
+    public function groupByCountValue($field, $order = '', $sort = 'ASC', $from = 0, $size = 10, $child = [])
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
         $this->params['aggregations'][$key][] = array(
             'field' => $field,
             'type'  => parent::AGG_TYPE_COUNT_VALUE,
+            'order' => $order,
+            'sort'  => $sort,
+            'from'  => $from,
+            'size'  => $size,
         );
         return $this;
     }

@@ -10,8 +10,56 @@ $config = [
     ],
     'retries' => 1,
 ];
+multiAgg();
+function multiAgg()
+{
+    global $config;
+    $es = new Client();
+    $es->setHost($config);
+    $child = [
+        'field' => 'orderParent.distId',
+        'from'  => 0,
+        'size'  => 10,
+        'order' => '_count',
+        'sort'  => 'desc',
+        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_AGGS,
+        'child' => [
+            'field' => 'orderParent.orderAmount',
+            'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+        ],
+    ];
+    $res   = $es->from('test')
+        ->dateHistogram('orderParent.orderTime', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+    die;
+}
 
-nestedAgg();
+function mixNestedAndNormal()
+{
+    global $config;
+    $es = new Client();
+    $es->setHost($config);
+    $child = [
+        'field' => 'orderRefund.sum',
+        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+    ];
+    $res   = $es->from('test')
+        ->beginNested()
+        ->setNested('field')
+        ->where('field.childField', '!=', 0)
+        ->dateHistogram('field.childField2', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
+        ->endNested()
+        ->where('field1', '=', 0)
+        ->groupBy('field.childField2', '_count', 'DESC', 20)
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+    die;
+}
 
 function nestedAgg()
 {
@@ -19,7 +67,7 @@ function nestedAgg()
     $es = new Client();
     $es->setHost($config);
     $child = [
-        'field' => 'sum',
+        'field' => 'field2',
         'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
     ];
     $res   = $es->from('test')
@@ -44,12 +92,12 @@ function groupBySum()
     $es = new Client();
     $es->setHost($config);
     $child = [
-        'field' => 'orderAmount',
+        'field' => 'filed3',
         'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
     ];
     $res   = $es->from('test')
         ->where('platform', '=', 2)
-        ->groupBy('userId', 'selfChild', 'DESC', 20, $child)
+        ->groupBy('userId', \PhpES\EsClient\DSLBuilder::SORT_SELF_CHILD, 'DESC', 0, 20, $child)
         ->limit(0)
         ->debug()
         ->search();

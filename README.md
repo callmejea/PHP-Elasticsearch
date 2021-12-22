@@ -67,15 +67,20 @@ $res = $es
 ### 聚合
 
 - 现在聚合支持多聚合了～
-- 多重聚合被支持了（只有一层）
+- 多重聚合被支持了
 - 嵌套nested被支持了
 
 ```php
 $res = $es
     ->select(array('field', 'field2'))
     ->from('index')
+     ->beginNested()
+    ->setNested('parentField') // 标记嵌套文档聚合开始
+    ->where('parentField.field', '!=', 0)
+    ->dateHistogram('parentField.filed1', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
+    ->endNested() // 标记嵌套文档结束
     ->groupBy('field') // 普通聚合 返回值中将自动拼接上 agg_字段名 
-    ->groupByCount(field) // 获取参与聚合的文档数量 自动拼接 count_字段名
+    ->sum(field) // 获取参与聚合的文档数量 自动拼接 count_字段名
     ->cardinality('field') // 获取不重复的符合条件的总数 自动拼接 cardinality_字段名
     ->sum('field') // 获取sum
     ->search()

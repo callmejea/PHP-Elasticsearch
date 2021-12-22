@@ -650,7 +650,6 @@ class DSLBuilder extends ClientBuilder
      * @param array $params 聚合的数据结构
      *
      * @cross Client function groupBy
-     * @return array
      * @throws \Exception
      */
     private function aggregations($params)
@@ -658,17 +657,10 @@ class DSLBuilder extends ClientBuilder
         $arr = array();
         foreach ($params as $p) {
             $this->checkAggregationParams($p);
-            $this->formatAggs($p);
+            $aggKey       = $this->getAggKey($p['type'], $p['field']);
+            $arr[$aggKey] = $this->formatAggs($p, $aggKey);
         }
-        // 判断是否有按日期分隔的， 如果有，组装dsl
-        /* if ($this->hasHistogram && $this->hasSum) {
-             $this->aggregationRes['sum_histogram'] = [
-                 'sum_bucket' => [
-                     'buckets_path' => $this->histogramKey . '>' . $this->sumKey,
-                 ],
-             ];
-         }*/
-        return $arr;
+        $this->aggregationRes = $arr;
     }
 
     /**
@@ -705,92 +697,115 @@ class DSLBuilder extends ClientBuilder
         }
     }
 
-    /**
-     * 组装聚合查询
-     * @param        $params
-     */
-    private function formatAggs($params)
+    private function getAggKey($type, $fieldName)
     {
-        $fk = str_replace('.', '_', $params['field']);
-        switch ($params['type']) {
+        $fk = str_replace('.', '_', $fieldName);
+        switch ($type) {
             case self::AGG_TYPE_SUM:
-                $key                                        = 'sum_' . $fk;
-                $this->aggregationRes[$key]['sum']['field'] = $params['field'];
+                $key = 'sum_' . $fk;
                 break;
             case self::AGG_TYPE_CARDINALITY:
-                $key                                                = 'cardinality_' . $fk;
-                $this->aggregationRes[$key]['cardinality']['field'] = $params['field'];
+                $key = 'cardinality_' . $fk;
                 break;
             case self::AGG_TYPE_COUNT_VALUE:
-                $key                                                = 'count_' . $fk;
-                $this->aggregationRes[$key]['value_count']['field'] = $params['field'];
+                $key = 'count_' . $fk;
                 break;
             case self::AGG_TYPE_HISTOGRAM:
-                $key                                          = 'histogram_' . $fk;
-                $this->aggregationRes[$key]['date_histogram'] = [
-                    'field'                 => $params['field'],
-                    $params['intervalType'] => $params['interval'],
-                    'time_zone'             => $this->timeZone,
-                ];
+                $key = 'histogram_' . $fk;
                 break;
             default:
-                $key      = 'agg_' . $fk;
-                $orderKey = $params['order'];
-                if ($orderKey == self::SORT_SELF_CHILD) {
-                    $childKey = str_replace('.', '_', $params['child']['field']);
-                    $orderKey = self::SUB_AGG_PREFIX . $this->getAggTypeEn($params['child']['type']) . '_' . $childKey;
-                }
-                $this->aggregationRes[$key]['terms'] = array(
-                    'field' => $params['field'],
-                    'order' => array($orderKey => $params['sort']),
-                    'size'  => $params['size'],
-                );
+                $key = 'agg_' . $fk;
                 break;
         }
-        if (isset($params['child']) && !empty($params['child'])) {
-            if (count($params['child']) > 1 && isset($params['child'][0])) {
-                foreach ($params['child'] as $child) {
-                    $this->checkAggregationParams($child);
-                    $this->formatSubAggs($child, $key);
-                }
-            } else {
-                $this->checkAggregationParams($params['child']);
-                $this->formatSubAggs($params['child'], $key);
-            }
-        }
+        return $key;
     }
 
     /**
-     * 组装聚合子查询,复制了一遍，防止使用者写错多嵌套
-     * @param        $params
+     * 组装聚合查询
+     * @param array  $params
+     * @param string $fk
+     * @return array
      */
-    private function formatSubAggs($params, $parent)
+    private function formatAggs($params, $fk)
     {
-        $fk = str_replace('.', '_', $params['field']);
+        $orderKey = $fk;
         switch ($params['type']) {
             case self::AGG_TYPE_SUM:
-                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'sum_' . $fk]['sum']['field'] = $params['field'];
+                $aggRes = [
+                    'sum' => [
+                        'field' => $params['field']
+                    ]
+                ];
                 break;
             case self::AGG_TYPE_CARDINALITY:
-                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'cardinality_' . $fk]['cardinality']['field'] = $params['field'];
+                $aggRes = [
+                    'cardinality' => [
+                        'field' => $params['field']
+                    ]
+                ];
                 break;
             case self::AGG_TYPE_COUNT_VALUE:
-                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'count_' . $fk]['value_count']['field'] = $params['field'];
+                $aggRes = [
+                    'value_count' => [
+                        'field' => $params['field']
+                    ]
+                ];
                 break;
             case self::AGG_TYPE_HISTOGRAM:
-                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'histogram_' . $fk]['date_histogram'] = [
-                    'field'                 => $params['field'],
-                    $params['intervalType'] => $params['interval'],
+                $aggRes = [
+                    'date_histogram' => [
+                        'field'                 => $params['field'],
+                        $params['intervalType'] => $params['interval'],
+                        'time_zone'             => $this->timeZone,
+                    ]
                 ];
                 break;
             default:
-                $this->aggregationRes[$parent]['aggs'][self::SUB_AGG_PREFIX . 'agg_' . $fk]['terms'] = array(
-                    'field' => $params['field'],
-                    'order' => array($params['order'] => $params['sort']),
-                    'size'  => $params['size'],
+                $orderKey = '_count';
+                if ($params['order'] == self::SORT_SELF_CHILD) {
+                    $childKey = str_replace('.', '_', $params['child']['field']);
+                    $orderKey = self::SUB_AGG_PREFIX . $this->getAggTypeEn($params['child']['type']) . '_' . $childKey;
+                }
+                // 排序bucket
+                $aggRes = array(
+                    'terms' => [
+                        'field' => $params['field'],
+                        //                        'order' => array($orderKey => $params['sort']),
+                        'size'  => 10000,
+                    ],
                 );
                 break;
         }
+        // 多重聚合
+        if (isset($params['child']) && !empty($params['child'])) {
+
+            if (count($params['child']) > 1 && isset($params['child'][0])) {
+                foreach ($params['child'] as $child) {
+                    $this->checkAggregationParams($child);
+                    $subKey = self::SUB_AGG_PREFIX . $this->getAggKey($child['type'], $child['field']);;
+                    $aggRes['aggs'][$subKey] = $this->formatAggs($child, $fk);
+                }
+            } else {
+                $this->checkAggregationParams($params['child']);
+                $subKey                  = self::SUB_AGG_PREFIX . $this->getAggKey($params['child']['type'], $params['child']['field']);
+                $aggRes['aggs'][$subKey] = $this->formatAggs($params['child'], $fk);
+            }
+        }
+        //  排序
+        if (isset($params['sort'])) {
+            $aggRes['aggs']['sortAggs'] = [
+                'bucket_sort' => [
+                    'sort' => [
+                        [
+                            $orderKey => ['order' => $params['sort']]
+                        ]
+                    ],
+                    'from' => $params['from'],
+                    'size' => $params['size'],
+                ]
+            ];
+        }
+        return $aggRes;
     }
 
     /**

@@ -10,7 +10,180 @@ $config = [
     ],
     'retries' => 1,
 ];
-multiAgg();
+
+
+
+$json  = '';
+$dsl   = [
+    'size' => 0,
+    'aggs' => [
+        'field' => [
+            'nested' => [
+                'path' => 'field',
+            ],
+            'aggs'   => [
+                'allReason' => [
+                    'terms' => [
+                        'field' => 'field.someReason',
+                    ],
+                ],
+                'aggs'      => [
+                    'cardinality' => [
+                        'field' => 'field.someId',
+                    ],
+                ],
+            ],
+        ],
+    ],
+];
+$es    = new Client();
+$child = [
+    'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_CARDINALITY,
+    'field' => 'field.someId',
+];
+$res   = $es->setHost($config)
+    ->from('test')
+    ->setBasicAuthentication('admin','admin')
+    ->limit(0)
+    ->beginNested()
+    ->setNested('field')
+    ->groupBy('field.someReason', \PhpES\EsClient\DSLBuilder::SORT_SELF_CHILD, 'DESC', 0, 100, $child)
+    ->endNested()
+    ->debug()
+    ->search();
+print_r($res->getFormat());
+die;
+//print_r(json_decode($res->getFormat()['debug']['conditions']));die;
+
+
+function testHistogramFix()
+{
+    global $config;
+    $child = [
+        'field' => 'field.countryName',
+        'from'  => 0,
+        'size'  => 100,
+        'order' => '_count',
+        'sort'  => 'desc',
+        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_AGGS,
+        //    'child' => [
+        //        'field' => 'field.totalAmount',
+        //        'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+        //    ],
+    ];
+
+    $es  = new Client();
+    $res = $es->setHost($config)
+        ->from('test')
+        ->where('orderParent.payTime', '>', '1635696000')
+        ->where('orderParent.payTime', '<', '1636041600')
+//    ->beginNested()
+//    ->setNested('field')
+        ->dateHistogram('orderParent.payTime', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_DAY, \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, [], 0, '2021-10-31', '2021-11-08')
+//    ->endNested()
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+    die;
+}
+
+function testDsl()
+{
+    global $config;
+
+    $dsl = [
+        'size' => 0,
+        'aggs' => [
+            'ordersome' => [
+                'nested' => [
+                    'path' => 'field',
+                ],
+                'aggs'   => [
+                    'agg_field' => [
+                        'terms' => [
+                            'field' => 'field.id',
+                            'size'  => 10000,
+                        ],
+                        'aggs'  => [
+                            'sub_sum_field_sum' => [
+                                'sum' => [
+                                    'field' => 'field.sum',
+                                ],
+                            ],
+                            'sub_sum_field_num' => [
+                                'sum' => [
+                                    'field' => 'ordersome.num',
+                                ],
+                            ],
+                            'sortAggs'          => [
+                                'bucket_sort' => [
+                                    'sort' => [
+                                        [
+                                            'sub_sum_field.sort' => [
+                                                'order' => 'DESC',
+                                            ],
+                                        ],
+                                    ],
+                                    'from' => 0,
+                                    'size' => 5,
+                                ],
+                            ],
+                            'hits'              => [
+                                'top_hits' => [
+                                    'size'    => 1,
+                                    '_source' => [
+                                        'include' => [
+                                            'field.subId'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $es  = new Client();
+    $res = $es->setHost($config)
+        ->from('test')
+        ->dsl($dsl)
+        ->getFormat();
+    print_r($res);
+    die;
+}
+
+function testMultiChild()
+{
+    global $config;
+    $child = [
+        [
+            'field' => 'field.sum',
+
+            'type' => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+        ],
+        [
+            'field' => 'field.num',
+
+            'type' => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
+        ],
+    ];
+    $es    = new Client();
+    $res   = $es->setHost($config)
+        ->from('test')
+        ->beginNested()
+        ->setNested('field')
+        ->groupBy('field.id', \PhpES\EsClient\DSLBuilder::SORT_SELF_CHILD, 'DESC', 20, 20, $child)
+        ->endNested()
+        ->limit(0)
+        ->debug()
+        ->search();
+    print_r($res->getFormat());
+    die;
+}
+
 function multiAgg()
 {
     global $config;
@@ -24,12 +197,12 @@ function multiAgg()
         'sort'  => 'desc',
         'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_AGGS,
         'child' => [
-            'field' => 'orderParent.orderAmount',
+            'field' => 'field.amount',
             'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
         ],
     ];
     $res   = $es->from('test')
-        ->dateHistogram('orderParent.orderTime', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
+        ->dateHistogram('filed.time', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
         ->limit(0)
         ->debug()
         ->search();
@@ -43,14 +216,14 @@ function mixNestedAndNormal()
     $es = new Client();
     $es->setHost($config);
     $child = [
-        'field' => 'orderRefund.sum',
+        'field' => 'ordersome.sum',
         'type'  => \PhpES\EsClient\DSLBuilder::AGG_TYPE_SUM,
     ];
     $res   = $es->from('test')
         ->beginNested()
         ->setNested('field')
-        ->where('field.childField', '!=', 0)
-        ->dateHistogram('field.childField2', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
+        ->where('field.fieldChild', '!=', 0)
+        ->dateHistogram('field.time', 'year', \PhpES\EsClient\DSLBuilder::AGG_HISTOGRAM_TYPE_CALENDAR, $child)
         ->endNested()
         ->where('field1', '=', 0)
         ->groupBy('field.childField2', '_count', 'DESC', 20)
@@ -150,7 +323,7 @@ function testSum()
     $es->setHost($config);
     $res = $es->from('test')
         ->sum('orderParent.orderAmount')
-        ->cardinality('orderParent.orderAmount')
+        ->cardinality('orderParent.distId')
         ->limit(0)
         ->debug()
         ->search();

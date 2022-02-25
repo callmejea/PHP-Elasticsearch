@@ -111,7 +111,7 @@ class Client extends DSLBuilder
 
     /**
      * @param string $columns 需要对比的字段
-     * @param string $operate must in (< > = != >= <= in like between not_between )
+     * @param string $operate must in (< > = != >= <= in （not in） like between not_between )
      * @param mixed  $value   字段的值
      *
      * @return $this
@@ -370,7 +370,7 @@ class Client extends DSLBuilder
     }
 
     /**
-     * 获取聚合后的总个数，去重的，类似于： select count(*) from xxx group by bbb
+     * 获取聚合后的总个数，去重的，类似于： select distinct(xxx) from table
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html
      * @param $field
      * @return $this
@@ -392,7 +392,7 @@ class Client extends DSLBuilder
      * @param $field
      * @return $this
      */
-    public function sum($field, $order = '', $sort = 'ASC', $from = 0, $size = 10, $child = [])
+    public function sum($field, $child = [])
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
@@ -400,10 +400,6 @@ class Client extends DSLBuilder
             'field' => $field,
             'type'  => parent::AGG_TYPE_SUM,
             'child' => $child,
-            'order' => $order,
-            'sort'  => $sort,
-            'from'  => $from,
-            'size'  => $size,
         );
         return $this;
     }
@@ -413,7 +409,17 @@ class Client extends DSLBuilder
      * @param $field
      * @param $interval
      */
-    public function dateHistogram($field, $interval, $intervalType, $child = [], $pipeLine = true)
+    /**
+     * @param string $field        要聚合的字段
+     * @param string $interval     聚合类型，见：DSLBuilder::AGG_HISTOGRAM_*
+     * @param string $intervalType 见：DSLBuilder::AGG_HISTOGRAM_TYPE_*
+     * @param array  $child        子聚合
+     * @param int    $minDocCount  最少匹配多少才返回，如果和fixTimeStart一起使用，则写0
+     * @param string $fixTimeStart 补全的开始时间，可以比筛选范围的时间多或则少，比如：传入where里的时间为 2022-11-11 这里可以是 2022-01-11
+     * @param string $fixTimeEnd
+     * @return $this
+     */
+    public function dateHistogram($field, $interval, $intervalType, $child = [], $minDocCount = 0, $fixTimeStart = '', $fixTimeEnd = '')
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
@@ -423,7 +429,9 @@ class Client extends DSLBuilder
             'interval'     => $interval,
             'type'         => parent::AGG_TYPE_HISTOGRAM,
             'child'        => $child,
-            'pipeLine'     => $pipeLine,
+            'fixTimeStart' => $fixTimeStart,
+            'fixTimeEnd'   => $fixTimeEnd,
+            'minDocCount'  => $minDocCount,
         );
         return $this;
     }
@@ -531,6 +539,16 @@ class Client extends DSLBuilder
             'operate' => 'script',
         );
 
+        return $this;
+    }
+
+    /**
+     * 返回total总数精确
+     * @return $this
+     */
+    public function trackTotalHits()
+    {
+        $this->trackTotalHits = true;
         return $this;
     }
 
@@ -656,6 +674,20 @@ class Client extends DSLBuilder
     }
 
     /**
+     * 直接传入dsl进行查询，要求为数组如 test.testDsl 方法
+     * @param $dsl
+     * @return Format
+     */
+    public function dsl($dsl)
+    {
+        if ($this->client == null) {
+            $this->client = $this->fromConfig(self::$clientConfig);
+        }
+        $this->conditions['body'] = $dsl;
+        return $this->output($this->call('search', $this->conditions));
+    }
+
+    /**
      * es查询, 搜索
      * @return Format
      * @throws \Exception
@@ -703,7 +735,7 @@ class Client extends DSLBuilder
     {
         try {
             $res = $this->client->$callFunc($params);
-        } catch (ESORMException $e) {
+        } catch (\Exception $e) {
             $res['error'] = $e->getMessage();
         }
 

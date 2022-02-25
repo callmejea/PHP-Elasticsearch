@@ -232,6 +232,7 @@ class DSLBuilder extends ClientBuilder
     protected $nestedBegin = false;
     protected $nestedPath = '';
     protected $nestedCondition = [];
+    protected $trackTotalHits = false;
 
     /**
      * 按照es的结构去组装数据源
@@ -247,7 +248,7 @@ class DSLBuilder extends ClientBuilder
         }
         $this->compileNormal();
 
-        if ($this->nestedCondition) {
+        if ($this->nestedCondition || $this->params['aggregations']['nested']) {
             $this->compileNested();
         }
         //组装排序参数
@@ -258,6 +259,9 @@ class DSLBuilder extends ClientBuilder
         // 是否需要中断
         if (array_key_exists('terminate_after', $this->params)) {
             $this->conditions['body']['terminate_after'] = $this->params['terminate_after'];
+        }
+        if ($this->trackTotalHits) {
+            $this->conditions['body']['track_total_hits'] = true;
         }
         return $this->conditions;
     }
@@ -324,9 +328,11 @@ class DSLBuilder extends ClientBuilder
                     ]
                 ];
             }
-
+        } else {
+            if ($aggs) {
+                $this->conditions['body']['aggs'][$this->nestedPath]['aggs'] = $aggs;
+            }
         }
-
     }
 
 
@@ -757,14 +763,26 @@ class DSLBuilder extends ClientBuilder
                         'field'                 => $params['field'],
                         $params['intervalType'] => $params['interval'],
                         'time_zone'             => $this->timeZone,
+                        'min_doc_count'         => $params['minDocCount'],
                     ]
                 ];
+                if ($params['fixTimeStart'] && $params['fixTimeEnd']) {
+                    $aggRes['date_histogram']['extended_bounds'] = [
+                        "min" => $params['fixTimeStart'],
+                        "max" => $params['fixTimeEnd'],
+                    ];
+                }
                 break;
             default:
                 $orderKey = '_count';
                 if ($params['order'] == self::SORT_SELF_CHILD) {
-                    $childKey = str_replace('.', '_', $params['child']['field']);
-                    $orderKey = self::SUB_AGG_PREFIX . $this->getAggTypeEn($params['child']['type']) . '_' . $childKey;
+                    if (count($params['child']) > 1 && isset($params['child'][0])) {
+                        $c = $params['child'][0];
+                    } else {
+                        $c = $params['child'];
+                    }
+                    $childKey = str_replace('.', '_', $c['field']);
+                    $orderKey = self::SUB_AGG_PREFIX . $this->getAggTypeEn($c['type']) . '_' . $childKey;
                 }
                 // 排序bucket
                 $aggRes = array(

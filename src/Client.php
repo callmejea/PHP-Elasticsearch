@@ -345,25 +345,27 @@ class Client extends DSLBuilder
     /**
      * 聚合信息, es的叫: aggregations, 单次查询中只允许一次聚合
      *
-     * @param string  $field 被聚合的字段
-     * @param string  $order 聚合后的排序字段
-     * @param string  $sort  聚合后的字段排序方式 _count _term  提供第三种： selfChild 根据子聚合的value来排序，详细见test：groupBySum
-     * @param integer $size  聚合结果集长度
-     *
+     * @param string  $field        被聚合的字段
+     * @param string  $order        聚合后的排序字段
+     * @param string  $sort         聚合后的字段排序方式 _count _term  提供第三种： selfChild 根据子聚合的value来排序，详细见test：groupBySum
+     * @param integer $size         聚合结果集长度
+     * @param array   $child        子查询
+     * @param int     $searchWindow 查询窗口大小
      * @return $this
      */
-    public function groupBy($field, $order = '_count', $sort = 'ASC', $from = 0, $size = 10, $child = [])
+    public function groupBy($field, $order = '_count', $sort = 'ASC', $from = 0, $size = 10, $child = [], $searchWindow = 10000)
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
         $this->params['aggregations'][$key][] = array(
-            'field' => $field,
-            'order' => $order,
-            'sort'  => $sort,
-            'from'  => $from,
-            'size'  => $size,
-            'type'  => parent::AGG_TYPE_AGGS,
-            'child' => $child,
+            'field'        => $field,
+            'order'        => $order,
+            'sort'         => $sort,
+            'from'         => $from,
+            'size'         => $size,
+            'type'         => parent::AGG_TYPE_AGGS,
+            'child'        => $child,
+            'searchWindow' => $searchWindow,
         );
 
         return $this;
@@ -372,17 +374,20 @@ class Client extends DSLBuilder
     /**
      * 获取聚合后的总个数，去重的，类似于： select distinct(xxx) from table
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html
-     * @param $field
+     * @param       $field
+     * @param array $child              子查询
+     * @param int   $precisionThreshold 聚合后参与返回的key数量最大40000
      * @return $this
      */
-    public function cardinality($field, $child = [])
+    public function cardinality($field, $child = [], $precisionThreshold = 40000)
     {
         $key = $this->nestedBegin ? 'nested' : 'normal';
 
         $this->params['aggregations'][$key][] = array(
-            'field' => $field,
-            'type'  => parent::AGG_TYPE_CARDINALITY,
-            'child' => $child,
+            'field'               => $field,
+            'type'                => parent::AGG_TYPE_CARDINALITY,
+            'child'               => $child,
+            'precision_threshold' => $precisionThreshold,
         );
         return $this;
     }
@@ -399,6 +404,38 @@ class Client extends DSLBuilder
         $this->params['aggregations'][$key][] = array(
             'field' => $field,
             'type'  => parent::AGG_TYPE_SUM,
+            'child' => $child,
+        );
+        return $this;
+    }
+
+    /**
+     * @param $field
+     * @return $this
+     */
+    public function max($field, $child = [])
+    {
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
+            'field' => $field,
+            'type'  => parent::AGG_TYPE_MAX,
+            'child' => $child,
+        );
+        return $this;
+    }
+
+    /**
+     * @param $field
+     * @return $this
+     */
+    public function min($field, $child = [])
+    {
+        $key = $this->nestedBegin ? 'nested' : 'normal';
+
+        $this->params['aggregations'][$key][] = array(
+            'field' => $field,
+            'type'  => parent::AGG_TYPE_MIN,
             'child' => $child,
         );
         return $this;

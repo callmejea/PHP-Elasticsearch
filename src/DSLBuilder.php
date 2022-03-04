@@ -175,6 +175,9 @@ class DSLBuilder extends ClientBuilder
      */
     const AGG_TYPE_HISTOGRAM = 5;
 
+    const AGG_TYPE_MIN = 6;
+    const AGG_TYPE_MAX = 7;
+
     /**
      * 按标准时间格式分隔聚合
      */
@@ -678,6 +681,8 @@ class DSLBuilder extends ClientBuilder
     {
         switch ($params['type']) {
             case self::AGG_TYPE_SUM:
+            case self::AGG_TYPE_MIN:
+            case self::AGG_TYPE_MAX:
             case self::AGG_TYPE_CARDINALITY:
             case self::AGG_TYPE_COUNT_VALUE:
                 if (!isset($params['field'])) {
@@ -709,6 +714,12 @@ class DSLBuilder extends ClientBuilder
         switch ($type) {
             case self::AGG_TYPE_SUM:
                 $key = 'sum_' . $fk;
+                break;
+            case self::AGG_TYPE_MIN:
+                $key = 'min_' . $fk;
+                break;
+            case self::AGG_TYPE_MAX:
+                $key = 'max_' . $fk;
                 break;
             case self::AGG_TYPE_CARDINALITY:
                 $key = 'cardinality_' . $fk;
@@ -743,12 +754,29 @@ class DSLBuilder extends ClientBuilder
                     ]
                 ];
                 break;
-            case self::AGG_TYPE_CARDINALITY:
+            case self::AGG_TYPE_MIN:
                 $aggRes = [
-                    'cardinality' => [
+                    'min' => [
                         'field' => $params['field']
                     ]
                 ];
+                break;
+            case self::AGG_TYPE_MAX:
+                $aggRes = [
+                    'max' => [
+                        'field' => $params['field']
+                    ]
+                ];
+                break;
+            case self::AGG_TYPE_CARDINALITY:
+                $aggRes = [
+                    'cardinality' => [
+                        'field' => $params['field'],
+                    ]
+                ];
+                if (isset($params['precision_threshold'])) {
+                    $aggRes['cardinality']['precision_threshold'] = (int)$params['precision_threshold'];
+                }
                 break;
             case self::AGG_TYPE_COUNT_VALUE:
                 $aggRes = [
@@ -789,7 +817,7 @@ class DSLBuilder extends ClientBuilder
                     'terms' => [
                         'field' => $params['field'],
                         //                        'order' => array($orderKey => $params['sort']),
-                        'size'  => 10000,
+                        'size'  => isset($params['searchWindow']) ? intval($params['searchWindow']) : 10000,
                     ],
                 );
                 break;
@@ -920,6 +948,8 @@ class DSLBuilder extends ClientBuilder
             self::AGG_TYPE_COUNT_VALUE => 'count',
             self::AGG_TYPE_CARDINALITY => 'cardinality',
             self::AGG_TYPE_SUM         => 'sum',
+            self::AGG_TYPE_MAX         => 'max',
+            self::AGG_TYPE_MIN         => 'min',
             self::AGG_TYPE_HISTOGRAM   => 'histogram',
         ];
         return $en[$type];

@@ -237,6 +237,9 @@ class DSLBuilder extends ClientBuilder
     protected $nestedCondition = [];
     protected $trackTotalHits = false;
 
+
+    protected $isSetMiniMumShouldMatch = false;
+    protected $miniMumShouldMatch = 0;
     /**
      * 按照es的结构去组装数据源
      * 首先会过滤一遍数据, 按照keyArray来分割好条件
@@ -365,6 +368,9 @@ class DSLBuilder extends ClientBuilder
                 case self::SHOULD:
                     $tmpDsl = $this->buildFilterContent($filter);
                     if (!empty($tmpDsl)) {
+                        if ($this->isSetMiniMumShouldMatch) {
+                            $dsl[self::QUERY_TYPE_BOOL]['minimum_should_match'] = $this->miniMumShouldMatch;
+                        }
                         $dsl[self::QUERY_TYPE_BOOL][self::SHOULD][] = $tmpDsl;
                     }
                     break;

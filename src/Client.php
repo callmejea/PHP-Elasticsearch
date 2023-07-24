@@ -73,6 +73,18 @@ class Client extends DSLBuilder
     }
 
     /**
+     * 设置should查询的 minimum_should_match
+     * @param int $i
+     * @return $this
+     */
+    public function setMiniMumShouldMatch(int $i)
+    {
+        $this->isSetMiniMumShouldMatch = true;
+        $this->miniMumShouldMatch      = $i;
+        return $this;
+    }
+
+    /**
      * 设置为使用nested嵌套查询
      * @return $this
      */
